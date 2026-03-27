@@ -1,0 +1,76 @@
+/* Shared dashboard styles */
+:root {
+  --ep-primary: #6366f1;
+  --ep-bg: #f8fafc;
+  --ep-card-bg: #ffffff;
+  --ep-border: #e2e8f0;
+  --ep-text: #1e293b;
+  --ep-muted: #64748b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--ep-bg);
+  color: var(--ep-text);
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+nav.back {
+  margin-bottom: 1.5rem;
+}
+
+nav.back a {
+  color: var(--ep-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+nav.back a:hover {
+  color: var(--ep-primary);
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.card {
+  background: var(--ep-card-bg);
+  border: 1px solid var(--ep-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric .value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ep-primary);
+}
+
+.metric .label {
+  font-size: 0.875rem;
+  color: var(--ep-muted);
+  margin-top: 0.25rem;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}

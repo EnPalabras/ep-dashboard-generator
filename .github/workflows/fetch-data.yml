@@ -1,0 +1,26 @@
+name: Fetch Ad Data
+
+on:
+  schedule:
+    - cron: "0 */12 * * *" # Every 12 hours (adjustable)
+  workflow_dispatch:
+
+env:
+  PG_HOST: ${{ secrets.PG_HOST }}
+  PG_PORT: ${{ secrets.PG_PORT }}
+  PG_DATABASE: ${{ secrets.PG_DATABASE }}
+  PG_USER: ${{ secrets.PG_USER }}
+  PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+  META_AD_ACCOUNT_ID: ${{ secrets.META_AD_ACCOUNT_ID }}
+  META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run src/batch/run.ts

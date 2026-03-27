@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meta Ads Overview — En Palabras</title>
+  <link rel="stylesheet" href="/assets/dashboard-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+  <nav class="back"><a href="/">← All Dashboards</a></nav>
+  <h1>Meta Ads Overview</h1>
+
+  <div class="grid" id="metrics"></div>
+
+  <div class="card">
+    <h2>Daily Spend & Clicks (Last 30 days)</h2>
+    <div class="chart-container">
+      <canvas id="spendChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+
+    async function fetchData(endpoint) {
+      const res = await fetch(`${API_BASE}/api${endpoint}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    }
+
+    function formatCurrency(n) {
+      return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatNumber(n) {
+      return Number(n).toLocaleString('en-US');
+    }
+
+    async function renderMetrics() {
+      const data = await fetchData('/meta/daily?from=' + daysAgo(30));
+      const totals = data.reduce((acc, row) => ({
+        spend: acc.spend + Number(row.spend),
+        impressions: acc.impressions + Number(row.impressions),
+        clicks: acc.clicks + Number(row.clicks),
+        conversions: acc.conversions + Number(row.conversions),
+      }), { spend: 0, impressions: 0, clicks: 0, conversions: 0 });
+
+      const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100).toFixed(2) : '0';
+      const cpc = totals.clicks > 0 ? (totals.spend / totals.clicks).toFixed(2) : '0';
+
+      document.getElementById('metrics').innerHTML = [
+        { label: 'Total Spend', value: formatCurrency(totals.spend) },
+        { label: 'Impressions', value: formatNumber(totals.impressions) },
+        { label: 'Clicks', value: formatNumber(totals.clicks) },
+        { label: 'CTR', value: ctr + '%' },
+        { label: 'CPC', value: formatCurrency(cpc) },
+        { label: 'Conversions', value: formatNumber(totals.conversions) },
+      ].map(m => `
+        <div class="card metric">
+          <div class="value">${m.value}</div>
+          <div class="label">${m.label}</div>
+        </div>
+      `).join('');
+
+      return data;
+    }
+
+    async function renderChart(data) {
+      const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
+
+      new Chart(document.getElementById('spendChart'), {
+        type: 'bar',
+        data: {
+          labels: sorted.map(r => r.date.slice(5)), // MM-DD
+          datasets: [
+            {
+              label: 'Spend ($)',
+              data: sorted.map(r => Number(r.spend)),
+              backgroundColor: 'rgba(99, 102, 241, 0.7)',
+              yAxisID: 'y',
+            },
+            {
+              label: 'Clicks',
+              data: sorted.map(r => Number(r.clicks)),
+              type: 'line',
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              yAxisID: 'y1',
+              tension: 0.3,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { position: 'left', title: { display: true, text: 'Spend ($)' } },
+            y1: { position: 'right', title: { display: true, text: 'Clicks' }, grid: { drawOnChartArea: false } },
+          },
+        },
+      });
+    }
+
+    function daysAgo(n) {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d.toISOString().slice(0, 10);
+    }
+
+    renderMetrics().then(renderChart).catch(err => {
+      document.getElementById('metrics').innerHTML = `<div class="card"><p>Failed to load data: ${err.message}</p></div>`;
+    });
+  </script>
+</body>
+</html>

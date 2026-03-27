@@ -1,0 +1,26 @@
+{
+  "name": "ep-dashboard-generator",
+  "module": "src/server/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/server/index.ts",
+    "start": "bun run src/server/index.ts",
+    "batch": "bun run src/batch/run.ts",
+    "db:init": "bun run scripts/init-db.ts",
+    "db:refresh-views": "bun run scripts/seed-views.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.20.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "pg": "^8.20.0"
+  }
+}
