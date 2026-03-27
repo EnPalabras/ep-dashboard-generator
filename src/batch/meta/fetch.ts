@@ -25,7 +25,6 @@ export async function fetchAndStoreMetaData(lookbackDays = 7) {
 
   if (insights.length === 0) return;
 
-  // Upsert each row
   const upsertQuery = `
     INSERT INTO meta_campaign_insights
       (campaign_id, campaign_name, adset_id, adset_name, ad_id, ad_name, date,

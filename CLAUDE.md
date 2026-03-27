@@ -60,9 +60,13 @@ Daily Meta Ads metrics. Parameters: `from`, `to`. Returns rows sorted by date de
 
 All campaigns sorted by total spend descending.
 
+### `GET /api/me`
+
+Returns the logged-in user: `{ "id": "...", "email": "user@enpalabras.com.ar", "name": "Full Name", "picture": "..." }`.
+
 ### `GET /api/health`
 
-Health check. Returns `{ "status": "ok", "timestamp": "..." }`.
+Health check (no auth required). Returns `{ "status": "ok", "timestamp": "..." }`.
 
 ## Available CSS Classes
 
@@ -85,6 +89,7 @@ See `dashboards/example-meta-overview.html` for a complete reference.
 - Server: Express (TypeScript)
 - Database: PostgreSQL with materialized views
 - Charts: Chart.js 4 (CDN)
+- Auth: Google OAuth (restricted to @enpalabras.com.ar)
 - Styling: Custom base CSS
 
 ## Commands

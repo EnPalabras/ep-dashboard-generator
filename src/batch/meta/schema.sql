@@ -1,6 +1,3 @@
--- Meta Ads raw data tables
--- This schema will be refined once specific Meta API fields are confirmed
-
 CREATE TABLE IF NOT EXISTS meta_campaign_insights (
   id SERIAL PRIMARY KEY,
   campaign_id TEXT NOT NULL,

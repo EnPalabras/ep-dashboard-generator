@@ -1,6 +1,5 @@
 import pool from "./pool.ts";
 
-// Allowlist of materialized views that the API can query
 export const ALLOWED_VIEWS = [
   "mv_meta_daily",
   "mv_meta_weekly",

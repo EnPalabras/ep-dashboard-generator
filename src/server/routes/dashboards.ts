@@ -25,7 +25,8 @@ function loadRegistry(): DashboardEntry[] {
 }
 
 // Home page
-router.get("/", (_req, res) => {
+router.get("/", (req, res) => {
+  const user = req.user!;
   const dashboards = loadRegistry();
 
   // Group by author
@@ -80,10 +81,22 @@ router.get("/", (_req, res) => {
     nav.sidebar details summary { font-weight: 600; cursor: pointer; margin-bottom: 0.5rem; }
     main { flex: 1; padding: 2rem; overflow-y: auto; }
     .empty-state { text-align: center; margin-top: 4rem; color: var(--pico-muted-color); }
+    .user-info {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.75rem 0; border-bottom: 1px solid var(--pico-muted-border-color);
+      margin-bottom: 1rem; font-size: 0.85rem;
+    }
+    .user-info img { width: 28px; height: 28px; border-radius: 50%; }
+    .user-info a { font-size: 0.75rem; color: var(--pico-muted-color); }
   </style>
 </head>
 <body>
   <nav class="sidebar">
+    <div class="user-info">
+      <img src="${user.picture}" alt="" referrerpolicy="no-referrer">
+      <span>${user.name}</span>
+      <a href="/auth/logout">Logout</a>
+    </div>
     <h2>Dashboards</h2>
     ${sidebarHtml}
     ${emptyState ? `<div class="empty-state">${emptyState}</div>` : ""}

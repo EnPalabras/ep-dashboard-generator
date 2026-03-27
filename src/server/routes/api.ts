@@ -4,11 +4,6 @@ import { isAllowedView } from "../db/views.ts";
 
 const router = Router();
 
-router.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-// Generic view query endpoint
 router.get("/query/:viewName", async (req, res) => {
   const { viewName } = req.params;
 
@@ -25,7 +20,6 @@ router.get("/query/:viewName", async (req, res) => {
 
   if (from) {
     params.push(from as string);
-    // Pick the date column based on view
     const dateCol = viewName === "mv_meta_weekly" ? "week" : viewName === "mv_meta_by_campaign" ? "first_date" : "date";
     conditions.push(`${dateCol} >= $${params.length}`);
   }
@@ -54,7 +48,6 @@ router.get("/query/:viewName", async (req, res) => {
   }
 });
 
-// Meta-specific convenience endpoints
 router.get("/meta/daily", async (req, res) => {
   const { from, to } = req.query;
   const params: string[] = [];
