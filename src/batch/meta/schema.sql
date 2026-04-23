@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS meta_campaign_insights (
   reach INTEGER DEFAULT 0,
   cpm NUMERIC(10, 2) DEFAULT 0,
   cpp NUMERIC(10, 2) DEFAULT 0,
-  ctr NUMERIC(6, 4) DEFAULT 0,
+  ctr NUMERIC(7, 4) DEFAULT 0,
   cpc NUMERIC(10, 2) DEFAULT 0,
   objective TEXT,
   status TEXT,
@@ -24,3 +24,13 @@ CREATE TABLE IF NOT EXISTS meta_campaign_insights (
 
 CREATE INDEX IF NOT EXISTS idx_meta_insights_date ON meta_campaign_insights(date);
 CREATE INDEX IF NOT EXISTS idx_meta_insights_campaign ON meta_campaign_insights(campaign_id);
+
+-- Dashboard registry
+CREATE TABLE IF NOT EXISTS dashboards (
+  slug TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  author TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  file TEXT NOT NULL,
+  created_at DATE NOT NULL DEFAULT CURRENT_DATE
+);

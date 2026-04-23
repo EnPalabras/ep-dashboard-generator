@@ -6,7 +6,8 @@ import pool from "../server/db/pool.ts";
 async function main() {
   try {
     console.log("[batch] starting data fetch...");
-    await fetchAndStoreMetaData();
+    const lookbackDays = parseInt(process.argv[2]) || 3;
+    await fetchAndStoreMetaData(lookbackDays);
 
     console.log("[batch] refreshing materialized views...");
     await refreshViews();

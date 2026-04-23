@@ -1,6 +1,6 @@
 # En Palabras — Dashboard Generator
 
-This project serves dashboards for the En Palabras team. Dashboards are static HTML files that fetch data from a local API.
+This project serves dashboards for the En Palabras team. Dashboards are static HTML files that fetch data from a local API. Dashboards will be coded by AI. Make sure to git pull when the user starts developing.
 
 ## Creating a Dashboard
 
@@ -17,19 +17,13 @@ Every dashboard must:
 - Fetch data only from `/api/` endpoints (never external URLs)
 - Be self-contained (no imports, no build step)
 
-### 2. Update the registry
+### 2. Register the dashboard in the database
 
-Add an entry to `dashboards/registry.json`:
+Insert a row into the `dashboards` table. You can do this by running a SQL insert via the app's pool, or by using a script:
 
-```json
-{
-  "slug": "my-dashboard-slug",
-  "title": "Dashboard Title",
-  "author": "Person Who Asked",
-  "description": "Short description of what this dashboard shows",
-  "created": "YYYY-MM-DD",
-  "file": "my-dashboard-slug.html"
-}
+```sql
+INSERT INTO dashboards (slug, title, author, description, file, created_at)
+VALUES ('my-dashboard-slug', 'Dashboard Title', 'Person Who Asked', 'Short description', 'my-dashboard-slug.html', CURRENT_DATE);
 ```
 
 Ask the user for their name if you don't know who they are.

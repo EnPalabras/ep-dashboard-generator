@@ -1,7 +1,7 @@
 const META_API_VERSION = "v21.0";
 const BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
 
-interface MetaInsight {
+export interface MetaInsight {
   campaign_id: string;
   campaign_name: string;
   adset_id?: string;
@@ -12,7 +12,7 @@ interface MetaInsight {
   spend: string;
   impressions: string;
   clicks: string;
-  conversions?: string;
+  conversions?: { action_type: string; value: number }[];
   reach: string;
   cpm: string;
   cpp: string;
@@ -66,7 +66,9 @@ export async function fetchCampaignInsights(
       access_token: accessToken,
     }).toString();
 
+  let page = 1;
   while (url) {
+    console.log("fetching page", page);
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -74,10 +76,11 @@ export async function fetchCampaignInsights(
       throw new Error(`Meta API error ${response.status}: ${body}`);
     }
 
-    const json: MetaApiResponse = await response.json();
+    const json = await response.json() as MetaApiResponse;
     allInsights.push(...json.data);
 
     url = json.paging?.next ?? null;
+    page++;
   }
 
   return allInsights;
