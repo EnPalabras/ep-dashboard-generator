@@ -9,8 +9,7 @@ if (!META_AD_ACCOUNT_ID || !META_ACCESS_TOKEN) {
   throw new Error("META_AD_ACCOUNT_ID and META_ACCESS_TOKEN are required");
 }
 
-const results = await fetchCampaignInsights(META_AD_ACCOUNT_ID, META_ACCESS_TOKEN, "2026-04-01", "2026-04-11");
-writeFileSync("results.json", JSON.stringify(results, null, 2));
+const results = await fetchCampaignInsights(META_AD_ACCOUNT_ID, META_ACCESS_TOKEN, "2026-04-11", "2026-04-20");
 //const results = JSON.parse(readFileSync("results.json", "utf-8")) as MetaInsight[];
 
 await pool.query(`
@@ -57,3 +56,4 @@ await pool.query(`
 ]);
 
 console.log(`inserted ${results.length} rows`);
+await pool.end();
