@@ -38,9 +38,11 @@ export function setupAuth(app: Express) {
     return;
   }
 
+  app.set("trust proxy", 1);
+
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || "change-me-in-production",
+      secret: process.env.SESSION_SECRET || "ep-dashboard-generator",
       resave: false,
       saveUninitialized: false,
       cookie: {
