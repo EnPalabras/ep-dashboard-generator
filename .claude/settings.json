@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run dashboard:register:*)",
+      "Bash(bun run db:refresh-views)",
+      "Bash(bun run dev)",
+      "Bash(bun run start)",
+      "Bash(bun install)",
+      "Bash(git pull:*)",
+      "Bash(git status)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Read(//home/tievo/EnPalabras/ep-dashboard-generator/**)"
+    ],
+    "ask": [
+      "Bash(bun run batch)",
+      "Bash(bun run db:init)",
+      "Bash(psql:*)",
+      "Bash(bun -e:*)",
+      "Bash(rm:*)"
+    ]
+  }
+}

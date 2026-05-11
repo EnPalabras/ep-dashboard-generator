@@ -8,7 +8,8 @@
     "start": "bun run src/server/index.ts",
     "batch": "bun run src/batch/run.ts",
     "db:init": "bun run scripts/init-db.ts",
-    "db:refresh-views": "bun run scripts/seed-views.ts"
+    "db:refresh-views": "bun run scripts/seed-views.ts",
+    "dashboard:register": "bun run scripts/register-dashboard.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

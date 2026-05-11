@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Top Campañas Meta por Spend — En Palabras</title>
+  <link rel="stylesheet" href="/assets/dashboard-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    .controls { display: flex; gap: 12px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
+    .controls label { font-size: 0.9rem; color: #555; }
+    .controls select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; background: white; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f8f8f8; font-weight: 600; position: sticky; top: 0; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:hover td { background: #fafafa; }
+    .table-wrap { max-height: 600px; overflow-y: auto; }
+    .note { color: #666; font-size: 0.85rem; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <nav class="back"><a href="/">← All Dashboards</a></nav>
+  <h1>Top Campañas Meta por Spend</h1>
+  <p class="note">Ranking de campañas de Meta Ads ordenadas por inversión total (histórico completo).</p>
+
+  <div class="grid" id="metrics"></div>
+
+  <div class="card">
+    <div class="controls">
+      <label for="topN">Mostrar en el gráfico:</label>
+      <select id="topN">
+        <option value="10">Top 10</option>
+        <option value="20" selected>Top 20</option>
+        <option value="50">Top 50</option>
+        <option value="0">Todas</option>
+      </select>
+    </div>
+    <div class="chart-container" style="height: 500px;">
+      <canvas id="spendChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Todas las campañas</h2>
+    <div class="table-wrap">
+      <table id="campaignsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Campaña</th>
+            <th class="num">Spend</th>
+            <th class="num">Impresiones</th>
+            <th class="num">Clicks</th>
+            <th class="num">CTR</th>
+            <th class="num">CPC</th>
+            <th class="num">Conversiones</th>
+            <th>Período</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let chartInstance = null;
+    let allCampaigns = [];
+
+    function formatCurrency(n) {
+      return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatNumber(n) {
+      return Number(n).toLocaleString('es-AR');
+    }
+
+    function formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toISOString().slice(0, 10);
+    }
+
+    async function fetchCampaigns() {
+      const res = await fetch(`${API_BASE}/api/meta/campaigns`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    }
+
+    function renderMetrics(campaigns) {
+      const totals = campaigns.reduce((acc, row) => ({
+        spend: acc.spend + Number(row.total_spend || 0),
+        impressions: acc.impressions + Number(row.total_impressions || 0),
+        clicks: acc.clicks + Number(row.total_clicks || 0),
+        conversions: acc.conversions + Number(row.total_conversions || 0),
+      }), { spend: 0, impressions: 0, clicks: 0, conversions: 0 });
+
+      const metrics = [
+        { label: 'Campañas', value: formatNumber(campaigns.length) },
+        { label: 'Spend total', value: formatCurrency(totals.spend) },
+        { label: 'Impresiones', value: formatNumber(totals.impressions) },
+        { label: 'Clicks', value: formatNumber(totals.clicks) },
+        { label: 'Conversiones', value: formatNumber(totals.conversions) },
+      ];
+
+      document.getElementById('metrics').innerHTML = metrics.map(m => `
+        <div class="card metric">
+          <div class="value">${m.value}</div>
+          <div class="label">${m.label}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderChart(campaigns, topN) {
+      const data = topN > 0 ? campaigns.slice(0, topN) : campaigns;
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(document.getElementById('spendChart'), {
+        type: 'bar',
+        data: {
+          labels: data.map(c => c.campaign_name || `(sin nombre — ${c.campaign_id})`),
+          datasets: [{
+            label: 'Spend ($)',
+            data: data.map(c => Number(c.total_spend)),
+            backgroundColor: 'rgba(99, 102, 241, 0.75)',
+            borderColor: 'rgba(79, 82, 221, 1)',
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => 'Spend: ' + formatCurrency(ctx.parsed.x),
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Spend ($)' },
+              ticks: { callback: (v) => '$' + Number(v).toLocaleString('es-AR') },
+            },
+            y: {
+              ticks: {
+                autoSkip: false,
+                callback: function(value) {
+                  const label = this.getLabelForValue(value);
+                  return label.length > 40 ? label.slice(0, 40) + '…' : label;
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderTable(campaigns) {
+      const tbody = document.querySelector('#campaignsTable tbody');
+      tbody.innerHTML = campaigns.map((c, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${c.campaign_name || `<em>(sin nombre — ${c.campaign_id})</em>`}</td>
+          <td class="num">${formatCurrency(c.total_spend)}</td>
+          <td class="num">${formatNumber(c.total_impressions)}</td>
+          <td class="num">${formatNumber(c.total_clicks)}</td>
+          <td class="num">${Number(c.ctr).toFixed(2)}%</td>
+          <td class="num">${formatCurrency(c.cpc)}</td>
+          <td class="num">${formatNumber(c.total_conversions)}</td>
+          <td>${formatDate(c.first_date)} → ${formatDate(c.last_date)}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function init() {
+      try {
+        allCampaigns = await fetchCampaigns();
+        renderMetrics(allCampaigns);
+        renderTable(allCampaigns);
+        const topN = parseInt(document.getElementById('topN').value, 10);
+        renderChart(allCampaigns, topN);
+
+        document.getElementById('topN').addEventListener('change', (e) => {
+          renderChart(allCampaigns, parseInt(e.target.value, 10));
+        });
+      } catch (err) {
+        document.getElementById('metrics').innerHTML =
+          `<div class="card"><p>No se pudieron cargar los datos: ${err.message}</p></div>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -2,6 +2,16 @@
 
 This project serves dashboards for the En Palabras team. Dashboards are static HTML files that fetch data from a local API. Dashboards will be coded by AI. Make sure to git pull when the user starts developing.
 
+> **Importante:** muchos usuarios del equipo no son técnicos. **Hablales siempre en castellano** y, antes de cada acción que modifique algo (crear/editar archivos, correr scripts, tocar la DB), avisales en una frase qué vas a hacer y por qué. La idea es que entiendan qué están aceptando, no que apreten "Accept" a ciegas.
+
+## Slash commands disponibles
+
+Para los flujos más comunes hay slash commands en `.claude/commands/` que ya tienen el paso a paso. Cuando el pedido del usuario calce con uno de ellos, seguilo:
+
+- `/nuevo-dashboard` — crear un dashboard nuevo (HTML + registro)
+- `/registrar-dashboard` — registrar en la base un HTML que ya existe
+- `/refrescar-vistas` — refrescar las materialized views
+
 ## Creating a Dashboard
 
 When a user asks you to create a dashboard, follow these steps:
@@ -19,12 +29,13 @@ Every dashboard must:
 
 ### 2. Register the dashboard in the database
 
-Insert a row into the `dashboards` table. You can do this by running a SQL insert via the app's pool, or by using a script:
+**Usá siempre el script wrapper, nunca SQL crudo:**
 
-```sql
-INSERT INTO dashboards (slug, title, author, description, file, created_at)
-VALUES ('my-dashboard-slug', 'Dashboard Title', 'Person Who Asked', 'Short description', 'my-dashboard-slug.html', CURRENT_DATE);
+```bash
+bun run dashboard:register <slug> "<title>" "<author>" "<description>"
 ```
+
+Eso hace un INSERT en la tabla `dashboards` (o UPDATE si el slug ya existe). El argumento `file` es opcional y por defecto es `<slug>.html`.
 
 Ask the user for their name if you don't know who they are.
 
@@ -89,9 +100,10 @@ See `dashboards/example-meta-overview.html` for a complete reference.
 ## Commands
 
 ```bash
-bun run dev              # Start dev server with hot reload
-bun run start            # Start production server
-bun run batch            # Fetch data from Meta Ads API
-bun run db:init          # Initialize database schema + views
-bun run db:refresh-views # Refresh materialized views
+bun run dev                 # Start dev server with hot reload
+bun run start               # Start production server
+bun run batch               # Fetch data from Meta Ads API
+bun run db:init             # Initialize database schema + views
+bun run db:refresh-views    # Refresh materialized views
+bun run dashboard:register  # Register a dashboard in the DB (slug title author description)
 ```
