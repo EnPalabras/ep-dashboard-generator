@@ -1,8 +1,26 @@
 import { Router } from "express";
 import pool from "../db/pool.ts";
 import { isAllowedView } from "../db/views.ts";
+import { queries, buildValues } from "../queries/index.ts";
 
 const router = Router();
+
+router.get("/q/:name", async (req, res) => {
+  const q = queries[req.params.name];
+  if (!q) {
+    res.status(404).json({ error: `Unknown query: ${req.params.name}` });
+    return;
+  }
+
+  try {
+    const values = buildValues(q, req.query as Record<string, string | undefined>);
+    const result = await pool.query(q.sql, values);
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error(`[api] named query "${req.params.name}" failed:`, err.message);
+    res.status(500).json({ error: "Query failed" });
+  }
+});
 
 router.get("/query/:viewName", async (req, res) => {
   const { viewName } = req.params;

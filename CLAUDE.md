@@ -73,6 +73,30 @@ Returns the logged-in user: `{ "id": "...", "email": "user@enpalabras.com.ar", "
 
 Health check (no auth required). Returns `{ "status": "ok", "timestamp": "..." }`.
 
+### `GET /api/q/:name` — Named queries (custom SQL per dashboard)
+
+Cuando un dashboard necesita una forma de los datos que las vistas existentes no cubren (por ejemplo, spend por campaña con rango de fechas), registralo como **query nombrada** en lugar de inflar las materialized views.
+
+Cómo:
+
+1. Crear `src/server/queries/<slug>.sql` con la SQL. Los parámetros se escriben con `:nombre` (no `$1`); el loader los traduce a placeholders posicionales al levantar el server.
+
+   ```sql
+   -- src/server/queries/spend-by-campaign-daily.sql
+   SELECT date, campaign_name, SUM(spend) AS spend
+   FROM meta_insights
+   WHERE date BETWEEN :from AND :to
+   GROUP BY date, campaign_name
+   ORDER BY date;
+   ```
+2. Desde el dashboard, llamar `fetch('/api/q/<slug>?from=...&to=...')`. Los names de los query params del URL tienen que matchear los `:nombre` de la SQL.
+
+Reglas:
+- **Solo `SELECT`**. Nada de `INSERT/UPDATE/DELETE/DROP/ALTER`.
+- Usar siempre `:nombre` para inputs — nunca interpolar strings desde el cliente.
+- Un archivo por query, nombre del archivo en kebab-case (es el `:name` del endpoint).
+- Los casts de Postgres con `::` (ej. `now()::date`) están bien — el loader los ignora.
+
 ## Available CSS Classes
 
 The base stylesheet (`/assets/dashboard-base.css`) provides:
