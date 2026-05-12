@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campañas por Reach — En Palabras</title>
+  <link rel="stylesheet" href="/assets/dashboard-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+    .controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.85rem;
+      gap: 4px;
+    }
+    .controls input, .controls select {
+      padding: 6px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    .controls button {
+      padding: 8px 16px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .controls button:hover { background: #4f46e5; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th { background: #f9fafb; font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .note {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+    .empty {
+      padding: 24px;
+      text-align: center;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <nav class="back"><a href="/">← Todos los Dashboards</a></nav>
+  <h1>Campañas por Reach</h1>
+  <p>Ranking de campañas de Meta Ads ordenadas por alcance total dentro de un rango de fechas.</p>
+
+  <div class="card">
+    <div class="controls">
+      <label>
+        Desde
+        <input type="date" id="from">
+      </label>
+      <label>
+        Hasta
+        <input type="date" id="to">
+      </label>
+      <label>
+        Top
+        <select id="topN">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="50">50</option>
+          <option value="0">Todas</option>
+        </select>
+      </label>
+      <button id="apply">Aplicar</button>
+    </div>
+    <p class="note">Nota: el <em>reach</em> se suma por día. Si una persona vio anuncios en varios días, se cuenta varias veces, así que este número sobreestima el alcance único real del período.</p>
+  </div>
+
+  <div class="grid" id="metrics"></div>
+
+  <div class="card">
+    <h2>Top campañas por reach</h2>
+    <div class="chart-container">
+      <canvas id="reachChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Detalle</h2>
+    <div id="tableWrap"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let chart = null;
+
+    function daysAgo(n) {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function today() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function formatNumber(n) {
+      return Number(n).toLocaleString('es-AR');
+    }
+
+    function formatCurrency(n) {
+      return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    async function fetchData(from, to) {
+      const url = `${API_BASE}/api/q/campanas-por-reach?from=${from}&to=${to}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    }
+
+    function renderMetrics(rows) {
+      const totals = rows.reduce((acc, r) => ({
+        reach: acc.reach + Number(r.total_reach || 0),
+        impressions: acc.impressions + Number(r.total_impressions || 0),
+        spend: acc.spend + Number(r.total_spend || 0),
+        clicks: acc.clicks + Number(r.total_clicks || 0),
+      }), { reach: 0, impressions: 0, spend: 0, clicks: 0 });
+
+      const cards = [
+        { label: 'Campañas activas', value: formatNumber(rows.length) },
+        { label: 'Reach total (suma)', value: formatNumber(totals.reach) },
+        { label: 'Impresiones', value: formatNumber(totals.impressions) },
+        { label: 'Inversión', value: formatCurrency(totals.spend) },
+      ];
+
+      document.getElementById('metrics').innerHTML = cards.map(m => `
+        <div class="card metric">
+          <div class="value">${m.value}</div>
+          <div class="label">${m.label}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderChart(rows, topN) {
+      const data = topN > 0 ? rows.slice(0, topN) : rows;
+      const labels = data.map(r => r.campaign_name || r.campaign_id);
+      const values = data.map(r => Number(r.total_reach));
+
+      if (chart) chart.destroy();
+      const canvas = document.getElementById('reachChart');
+      canvas.parentElement.style.height = Math.max(400, data.length * 28) + 'px';
+
+      chart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Reach',
+            data: values,
+            backgroundColor: 'rgba(99, 102, 241, 0.75)',
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => 'Reach: ' + formatNumber(ctx.parsed.x),
+              },
+            },
+          },
+          scales: {
+            x: { ticks: { callback: v => formatNumber(v) } },
+          },
+        },
+      });
+    }
+
+    function renderTable(rows, topN) {
+      const data = topN > 0 ? rows.slice(0, topN) : rows;
+      if (data.length === 0) {
+        document.getElementById('tableWrap').innerHTML = '<div class="empty">No hay datos para el rango seleccionado.</div>';
+        return;
+      }
+
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Campaña</th>
+              <th class="num">Reach</th>
+              <th class="num">Impresiones</th>
+              <th class="num">Clicks</th>
+              <th class="num">Inversión</th>
+              <th>Primer día</th>
+              <th>Último día</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map((r, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${r.campaign_name || r.campaign_id}</td>
+                <td class="num">${formatNumber(r.total_reach)}</td>
+                <td class="num">${formatNumber(r.total_impressions)}</td>
+                <td class="num">${formatNumber(r.total_clicks)}</td>
+                <td class="num">${formatCurrency(r.total_spend)}</td>
+                <td>${r.first_date?.slice(0, 10) || ''}</td>
+                <td>${r.last_date?.slice(0, 10) || ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      document.getElementById('tableWrap').innerHTML = html;
+    }
+
+    async function refresh() {
+      const from = document.getElementById('from').value;
+      const to = document.getElementById('to').value;
+      const topN = Number(document.getElementById('topN').value);
+
+      if (!from || !to) return;
+
+      document.getElementById('tableWrap').innerHTML = '<div class="empty">Cargando…</div>';
+      try {
+        const rows = await fetchData(from, to);
+        renderMetrics(rows);
+        renderChart(rows, topN);
+        renderTable(rows, topN);
+      } catch (err) {
+        document.getElementById('tableWrap').innerHTML = `<div class="empty">Error: ${err.message}</div>`;
+      }
+    }
+
+    document.getElementById('from').value = daysAgo(30);
+    document.getElementById('to').value = today();
+    document.getElementById('apply').addEventListener('click', refresh);
+    document.getElementById('topN').addEventListener('change', refresh);
+
+    refresh();
+  </script>
+</body>
+</html>

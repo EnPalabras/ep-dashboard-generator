@@ -16,7 +16,11 @@ El usuario quiere agregar a la base un dashboard que **ya tiene el HTML** en `da
 
 3. Ejecutá el comando.
 
-4. Confirmale el resultado al usuario.
+4. Chequeá si el HTML está commiteado: corré `git status` y mirá si `dashboards/<slug>.html` aparece como modificado o untracked.
+   - **Si aparece** (no está commiteado), avisale al usuario: "Veo que `<archivo>` no está en git. Lo commiteo y pusheo." Stageá sólo ese archivo, commiteá con `feat(dashboard): registrar <slug>` y `git push`.
+   - **Si no aparece**, no hagas nada de git — ya estaba en main.
+
+5. Confirmale el resultado al usuario.
 
 ## Reglas
 

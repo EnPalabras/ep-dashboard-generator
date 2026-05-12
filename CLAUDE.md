@@ -39,6 +39,26 @@ Eso hace un INSERT en la tabla `dashboards` (o UPDATE si el slug ya existe). El 
 
 Ask the user for their name if you don't know who they are.
 
+## Schema de la base (rápido)
+
+Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
+
+**Tabla cruda** `meta_campaign_insights` (un row por `campaign_id × adset_id × ad_id × date`):
+
+- Identificación: `campaign_id`, `campaign_name`, `adset_id`, `adset_name`, `ad_id`, `ad_name`, `date`
+- Métricas: `spend`, `impressions`, `clicks`, `conversions`, `reach`, `cpm`, `cpp`, `ctr`, `cpc`
+- Meta: `objective`, `status`, `created_at`
+
+**Vistas materializadas** (agregaciones de la tabla cruda — refrescar con `bun run db:refresh-views`):
+
+- `mv_meta_daily` — `date, spend, impressions, clicks, conversions, ctr, cpc`
+- `mv_meta_weekly` — `week, spend, impressions, clicks, conversions, ctr, cpc`
+- `mv_meta_by_campaign` — `campaign_id, campaign_name, total_spend, total_impressions, total_clicks, total_conversions, ctr, cpc, first_date, last_date`
+
+> ⚠️ Las vistas **no incluyen `reach` ni `cpm/cpp`**. Si los necesitás, hacé una query nombrada contra `meta_campaign_insights`.
+
+**Registry** `dashboards`: `slug (PK), title, author, description, file, created_at`
+
 ## Available API Endpoints
 
 Base URL: the server origin (use `window.location.origin` in dashboards).

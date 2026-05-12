@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bun run dashboard:register:*)",
+      "Bash(bun run dashboard:register *)",
       "Bash(bun run db:refresh-views)",
       "Bash(bun run dev)",
       "Bash(bun run start)",
@@ -13,7 +13,11 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Read(//home/tievo/EnPalabras/ep-dashboard-generator/**)"
+      "Read(//home/tievo/EnPalabras/ep-dashboard-generator/**)",
+      "Write(/home/tievo/EnPalabras/ep-dashboard-generator/dashboards/**)",
+      "Edit(/home/tievo/EnPalabras/ep-dashboard-generator/dashboards/**)",
+      "Write(/home/tievo/EnPalabras/ep-dashboard-generator/src/server/queries/**)",
+      "Edit(/home/tievo/EnPalabras/ep-dashboard-generator/src/server/queries/**)"
     ],
     "ask": [
       "Bash(bun run batch)",

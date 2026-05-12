@@ -26,7 +26,14 @@ De ahí derivás un **slug** corto en kebab-case (ej: `gasto-semanal-meta`).
    - Ejecutá ese comando. Ese comando hace un INSERT en la tabla `dashboards` (o UPDATE si ya existe el slug).
    - **No hagas SQL crudo a mano.** Siempre usá el script.
 
-3. **Decile al usuario**: "Listo. Levantá el server con `bun run dev` y abrí http://localhost:3000 para verlo."
+3. **Decile al usuario**: "Voy a commitear y pushear los archivos nuevos al repo."
+   - Corré `git status` para confirmar qué se modificó.
+   - Stageá **sólo** los archivos del dashboard (HTML en `dashboards/`, SQL en `src/server/queries/` si lo hubo). Nada de `git add -A`.
+   - Commiteá con un mensaje corto tipo `feat(dashboard): <slug> — <descripción de una línea>`.
+   - Pusheá a `main` con `git push`.
+   - Si el push falla, mostrale el error al usuario y paralo ahí — no intentes fix con `--force`.
+
+4. **Decile al usuario**: "Listo. Levantá el server con `bun run dev` y abrí http://localhost:3000 para verlo."
    - Si el server ya está corriendo, recordale solamente que refresque.
 
 ## Reglas
