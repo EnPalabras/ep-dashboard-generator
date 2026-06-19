@@ -46,8 +46,17 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 **Tabla cruda** `meta_campaign_insights` (un row por `campaign_id × adset_id × ad_id × date`):
 
 - Identificación: `campaign_id`, `campaign_name`, `adset_id`, `adset_name`, `ad_id`, `ad_name`, `date`
-- Métricas: `spend`, `impressions`, `clicks`, `conversions`, `reach`, `cpm`, `cpp`, `ctr`, `cpc`
+- Métricas: `spend`, `impressions`, `clicks`, `conversions`, `reach`, `cpm`, `cpp`, `ctr`, `cpc`, `frequency`, `purchase_roas`, `omni_purchase`, `omni_purchase_value`
 - Meta: `objective`, `status`, `created_at`
+
+> ⚠️ `reach`, `frequency` y `purchase_roas` se guardan por fila pero **no se suman** entre anuncios ni días (reach son personas únicas). Para totales correctos a nivel cuenta usá las tablas de cuenta de abajo.
+
+**Nivel cuenta** (vienen de llamadas `level=account` aparte — reach/frequency desduplicados por Meta):
+
+- `meta_account_daily` — una fila por día: `account_id, date, amount_spent, impressions, reach, frequency, ctr, cpm, purchase_roas, omni_purchase, omni_purchase_value`
+- `meta_account_totals` — una fila por ventana (`window_label` ∈ `last_7d`, `last_28d`, `mtd`): mismos campos + `period_from, period_to`
+
+**Snapshot de anuncios** `meta_ad_entities` (una fila por anuncio, estado actual): `ad_id (PK), ad_name, campaign_id, campaign_name, adset_id, effective_status, updated_at`
 
 **Vistas materializadas** (agregaciones de la tabla cruda — refrescar con `bun run db:refresh-views`):
 
@@ -56,6 +65,13 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 - `mv_meta_by_campaign` — `campaign_id, campaign_name, total_spend, total_impressions, total_clicks, total_conversions, ctr, cpc, first_date, last_date`
 
 > ⚠️ Las vistas **no incluyen `reach` ni `cpm/cpp`**. Si los necesitás, hacé una query nombrada contra `meta_campaign_insights`.
+
+**Queries nombradas Meta ya disponibles** (`/api/q/<nombre>`):
+
+- `meta-total?window=last_28d` — KPIs del período (fetchMetaTotal): spend, reach, impressions, frequency, ctr, cpm, purchase_roas, omni_purchase
+- `meta-daily?from=&to=` — serie diaria de cuenta (fetchMetaDaily)
+- `meta-ads?from=&to=` — tabla de anuncios + alertas con `effective_status` (fetchMetaAds)
+- `meta-campaigns` — id + nombre de campañas (fetchCampaigns)
 
 **Registry** `dashboards`: `slug (PK), title, author, description, file, created_at`
 
@@ -104,7 +120,7 @@ Cómo:
    ```sql
    -- src/server/queries/spend-by-campaign-daily.sql
    SELECT date, campaign_name, SUM(spend) AS spend
-   FROM meta_insights
+   FROM meta_campaign_insights
    WHERE date BETWEEN :from AND :to
    GROUP BY date, campaign_name
    ORDER BY date;
