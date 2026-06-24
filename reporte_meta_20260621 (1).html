@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte Meta Ads · En Palabras · 15/06 al 21/06/2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: #F9F5EE;
+    color: #434343;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  /* ── PORTADA ── */
+  .cover {
+    background: radial-gradient(ellipse at 60% 40%, #CE8CEA 0%, #8D52A8 45%, #55306D 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 40px;
+    page-break-after: always;
+  }
+  .cover-logo {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 40px;
+  }
+  .cover h1 {
+    font-size: 46px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.15;
+    margin-bottom: 18px;
+    max-width: 700px;
+  }
+  .cover .subtitle {
+    font-size: 19px;
+    color: rgba(255,255,255,0.8);
+    font-weight: 400;
+    margin-bottom: 50px;
+  }
+  .cover-kpis {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .cover-kpi {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    padding: 22px 32px;
+    text-align: center;
+    min-width: 130px;
+  }
+  .cover-kpi .val {
+    font-size: 32px;
+    font-weight: 900;
+    color: #fff;
+    display: block;
+  }
+  .cover-kpi .lbl {
+    font-size: 11px;
+    color: rgba(255,255,255,0.65);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 4px;
+  }
+  .cover-date {
+    margin-top: 50px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 1px;
+  }
+
+  /* ── LAYOUT ── */
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 50px 40px;
+  }
+  .section {
+    margin-bottom: 50px;
+    page-break-inside: avoid;
+  }
+
+  /* ── HEADINGS ── */
+  h2 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #774293;
+    border-bottom: 3px solid #BF75D8;
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #774293;
+    margin-bottom: 14px;
+    margin-top: 26px;
+  }
+  .section-number {
+    display: inline-block;
+    background: #774293;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 20px;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+  .kpi-card {
+    background: #F4EEDF;
+    border-left: 4px solid #774293;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .kpi-card.alert { border-left-color: #D94F4F; background: #FFF5F5; }
+  .kpi-card.ok    { border-left-color: #3D9E6A; background: #F1FAF5; }
+  .kpi-card.warn  { border-left-color: #E8921A; background: #FFFBF0; }
+  .kpi-val {
+    font-size: 28px;
+    font-weight: 900;
+    color: #774293;
+    display: block;
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+  .kpi-card.alert .kpi-val { color: #D94F4F; }
+  .kpi-card.ok    .kpi-val { color: #3D9E6A; }
+  .kpi-card.warn  .kpi-val { color: #E8921A; }
+  .kpi-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    font-weight: 600;
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 4px;
+  }
+
+  /* ── ALERT BOXES ── */
+  .alert-box {
+    background: #FFF5F5;
+    border: 1px solid #D94F4F;
+    border-left: 5px solid #D94F4F;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+  }
+  .alert-box strong { color: #D94F4F; }
+  .ok-box {
+    background: #F1FAF5;
+    border: 1px solid #3D9E6A;
+    border-left: 5px solid #3D9E6A;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+  }
+  .ok-box strong { color: #3D9E6A; }
+  .warn-box {
+    background: #FFFBF0;
+    border: 1px solid #E8921A;
+    border-left: 5px solid #E8921A;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+  }
+  .warn-box strong { color: #E8921A; }
+
+  /* ── TABLES ── */
+  .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    background: #774293;
+    color: #fff;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  tbody tr:nth-child(even) { background: #F4EEDF; }
+  tbody tr:hover { background: #EDE3C8; }
+  tbody td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #E8DEC8;
+    vertical-align: middle;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-ok     { background: #D6F5E4; color: #1F7A4E; }
+  .badge-alert  { background: #FDDEDE; color: #A12B2B; }
+  .badge-warn   { background: #FDEFD2; color: #915100; }
+  .badge-pause  { background: #EEE; color: #666; }
+  .badge-purple { background: #EDD9F7; color: #5A2080; }
+  .roas-high { color: #3D9E6A; font-weight: 700; }
+  .roas-mid  { color: #E8921A; font-weight: 700; }
+  .roas-low  { color: #D94F4F; font-weight: 700; }
+
+  /* ── IDEAS CARDS ── */
+  .ideas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+  }
+  .idea-card {
+    background: #F4EEDF;
+    border-top: 4px solid #BF75D8;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .idea-card .idea-num {
+    font-size: 10px;
+    font-weight: 700;
+    color: #BF75D8;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .idea-card .idea-hook {
+    font-size: 16px;
+    font-weight: 700;
+    color: #55306D;
+    line-height: 1.3;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .idea-card .idea-meta {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 6px;
+  }
+  .idea-card .idea-concepto {
+    font-size: 12.5px;
+    color: #434343;
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  .idea-card .idea-roas {
+    font-size: 12px;
+    font-weight: 700;
+    color: #774293;
+  }
+
+  /* ── ACTION PLAN ── */
+  .action-list { list-style: none; }
+  .action-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #E8DEC8;
+  }
+  .action-list li:last-child { border-bottom: none; }
+  .action-num {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 13px;
+    color: #fff;
+  }
+  .action-num.urgent { background: #D94F4F; }
+  .action-num.high   { background: #E8921A; }
+  .action-num.med    { background: #774293; }
+  .action-text strong { display: block; color: #333; margin-bottom: 2px; }
+  .action-text span { color: #777; font-size: 12px; }
+
+  /* ── TREND TABLE ── */
+  .trend-arrow-up   { color: #D94F4F; font-weight: 700; }
+  .trend-arrow-down { color: #3D9E6A; font-weight: 700; }
+  .trend-flat       { color: #888; font-weight: 700; }
+
+  /* ── FOOTER COVER ── */
+  .back-cover {
+    background: radial-gradient(ellipse at 40% 60%, #CE8CEA 0%, #8D52A8 45%, #55306D 100%);
+    min-height: 50vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 40px;
+    margin-top: 60px;
+  }
+  .back-cover h2 {
+    font-size: 30px;
+    color: #fff;
+    border: none;
+    padding: 0;
+    margin-bottom: 16px;
+  }
+  .back-cover p { color: rgba(255,255,255,0.75); font-size: 15px; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 2px solid #E8DEC8;
+    margin: 30px 0;
+  }
+
+  /* ── BULLET LIST ── */
+  .bullet-list { list-style: none; }
+  .bullet-list li {
+    padding: 6px 0 6px 20px;
+    position: relative;
+    color: #434343;
+  }
+  .bullet-list li::before {
+    content: '▸';
+    color: #BF75D8;
+    position: absolute;
+    left: 0;
+    font-size: 12px;
+    top: 8px;
+  }
+
+  /* ── COMPETITIVE ── */
+  .comp-card {
+    background: #fff;
+    border: 1px solid #E0D4F0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 14px;
+  }
+  .comp-card h4 { color: #774293; font-size: 15px; margin-bottom: 8px; }
+  .comp-card .comp-tags { margin-top: 8px; }
+  .tag {
+    display: inline-block;
+    background: #EDD9F7;
+    color: #5A2080;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    margin: 2px 3px 2px 0;
+    letter-spacing: 0.5px;
+  }
+
+  @media print {
+    .cover, .back-cover { page-break-after: always; }
+    .section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ PORTADA ══════════════════ -->
+<div class="cover">
+  <div class="cover-logo">En Palabras · Meta Ads Analytics</div>
+  <h1>Reporte Meta Ads<br>Semana del 15/06 al 21/06/2026</h1>
+  <div class="subtitle">Análisis semanal completo · Generado lunes 22/06/2026</div>
+
+  <div class="cover-kpis">
+    <div class="cover-kpi">
+      <span class="val">4,15x</span>
+      <span class="lbl">ROAS Cuenta</span>
+    </div>
+    <div class="cover-kpi">
+      <span class="val">$5,15M</span>
+      <span class="lbl">Gasto ARS</span>
+    </div>
+    <div class="cover-kpi">
+      <span class="val">448</span>
+      <span class="lbl">Compras</span>
+    </div>
+    <div class="cover-kpi">
+      <span class="val">$11.507</span>
+      <span class="lbl">CAC ARS</span>
+    </div>
+    <div class="cover-kpi">
+      <span class="val">4</span>
+      <span class="lbl">Campañas</span>
+    </div>
+  </div>
+
+  <div class="cover-date">Período: 15/06/2026 — 21/06/2026 &nbsp;·&nbsp; Cuenta: En Palabras - Pago Manual &nbsp;·&nbsp; ARS</div>
+</div>
+
+<!-- ══════════════════ CONTENIDO ══════════════════ -->
+<div class="page">
+
+  <!-- ─────────────── SECCIÓN 1: RESUMEN EJECUTIVO ─────────────── -->
+  <div class="section">
+    <h2><span class="section-number">01</span> Resumen Ejecutivo</h2>
+
+    <div class="kpi-grid">
+      <div class="kpi-card alert">
+        <span class="kpi-val">4,15x</span>
+        <span class="kpi-label">ROAS Cuenta</span>
+        <div class="kpi-sub">Target ≥ 6,0x · –31% del objetivo</div>
+      </div>
+      <div class="kpi-card alert">
+        <span class="kpi-val">$11.507</span>
+        <span class="kpi-label">CAC (ARS)</span>
+        <div class="kpi-sub">Target ≤ $10.000 · +15% sobre límite</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val">$5,15M</span>
+        <span class="kpi-label">Gasto Total</span>
+        <div class="kpi-sub">ARS · 4 campañas activas</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val">448</span>
+        <span class="kpi-label">Compras</span>
+        <div class="kpi-sub">$21,4M ARS ingresos atribuidos</div>
+      </div>
+      <div class="kpi-card ok">
+        <span class="kpi-val">23,4%</span>
+        <span class="kpi-label">ATC → Compra</span>
+        <div class="kpi-sub">Top quartile ✓ (17–20% target)</div>
+      </div>
+      <div class="kpi-card warn">
+        <span class="kpi-val">$2.655</span>
+        <span class="kpi-label">CPM Referencia</span>
+        <div class="kpi-sub">Real: $2.812 prom. · EP_Journal CPM $4.168 ⚠</div>
+      </div>
+    </div>
+
+    <h3>Alertas automáticas de la semana</h3>
+
+    <div class="alert-box">
+      <strong>⚠ FATIGA CREATIVA</strong> — EP_Test_Ventas_Volumen: frecuencia 2,55 &gt; 2,5. Requiere nuevos creativos urgente.
+    </div>
+    <div class="alert-box">
+      <strong>⚠ ROAS CRÍTICO</strong> — EP_Journal_Comun+Productividad: ROAS 2,96x &lt; 3,5x sostenido. Revisar y optimizar.
+    </div>
+    <div class="alert-box">
+      <strong>⚠ CTR DÉBIL</strong> — EP_JournalPadresMadres_Lanzamiento: CTR 0,78% &lt; 0,8%. Hook débil o audiencia saturada.
+    </div>
+    <div class="alert-box">
+      <strong>⚠ ADS ROAS = 0 ACTIVOS</strong> — 5 ads activos con 0 compras en la semana. Pausar inmediatamente. Pérdida estimada: ~$99K ARS.
+    </div>
+    <div class="warn-box">
+      <strong>▲ CPM ELEVADO</strong> — EP_Journal_Comun+Productividad CPM $4.168 vs referencia $2.655 (+57%). Posible saturación de audiencia.
+    </div>
+    <div class="ok-box">
+      <strong>✓ ATC→COMPRA SALUDABLE</strong> — Las 4 campañas tienen ratio ATC→Compra en rango top quartile (21–28%). El checkout no es el problema.
+    </div>
+    <div class="ok-box">
+      <strong>✓ TOP AD DE LA SEMANA</strong> — padresmadres_video_papa: ROAS 7,39x con gasto significativo ($280K). Candidato principal a escalar.
+    </div>
+  </div>
+
+  <!-- ─────────────── SECCIÓN 2: ANÁLISIS POR CAMPAÑA ─────────────── -->
+  <div class="section">
+    <h2><span class="section-number">02</span> Análisis por Campaña — Semana 15/06 al 21/06</h2>
+
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Campaña</th>
+          <th>Estado</th>
+          <th>Gasto (ARS)</th>
+          <th>Impres.</th>
+          <th>CTR</th>
+          <th>CPM (ARS)</th>
+          <th>Frecuencia</th>
+          <th>Compras</th>
+          <th>ROAS</th>
+          <th>ATC→Compra</th>
+          <th>Diagnóstico</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>EP_Test_Ventas_Volumen</strong></td>
+          <td><span class="badge badge-ok">ACTIVA</span></td>
+          <td>$1.869.913</td>
+          <td>694.559</td>
+          <td>1,20%</td>
+          <td>$2.692</td>
+          <td><strong style="color:#D94F4F">2,55 ⚠</strong></td>
+          <td>163</td>
+          <td class="roas-mid">4,07x</td>
+          <td>21,1% ✓</td>
+          <td><span class="badge badge-warn">Fatiga creativa</span></td>
+        </tr>
+        <tr>
+          <td><strong>EP_JournalPadresMadres_Lanzamiento</strong></td>
+          <td><span class="badge badge-ok">ACTIVA</span></td>
+          <td>$1.656.392</td>
+          <td>703.435</td>
+          <td><strong style="color:#D94F4F">0,78% ⚠</strong></td>
+          <td>$2.354</td>
+          <td>2,31</td>
+          <td>159</td>
+          <td class="roas-mid">4,99x</td>
+          <td>23,6% ✓</td>
+          <td><span class="badge badge-warn">CTR bajo — hook débil</span></td>
+        </tr>
+        <tr>
+          <td><strong>EP_Journal_Abuelos</strong></td>
+          <td><span class="badge badge-ok">ACTIVA</span></td>
+          <td>$843.359</td>
+          <td>449.566</td>
+          <td>1,31%</td>
+          <td>$1.875</td>
+          <td>1,87</td>
+          <td>69</td>
+          <td class="roas-mid">3,77x</td>
+          <td>28,2% ✓</td>
+          <td><span class="badge badge-warn">ROAS bajo target</span></td>
+        </tr>
+        <tr>
+          <td><strong>EP_Journal_Comun+Productividad</strong></td>
+          <td><span class="badge badge-ok">ACTIVA</span></td>
+          <td>$785.391</td>
+          <td>188.433</td>
+          <td>1,11%</td>
+          <td><strong style="color:#D94F4F">$4.168 ⚠</strong></td>
+          <td>2,07</td>
+          <td>57</td>
+          <td class="roas-low">2,96x ⚠</td>
+          <td>24,4% ✓</td>
+          <td><span class="badge badge-alert">ROAS crítico &lt; 3,5x</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Diagnóstico por campaña</h3>
+
+    <div class="comp-card">
+      <h4>EP_Test_Ventas_Volumen — ROAS 4,07x · Frecuencia 2,55 ⚠</h4>
+      <ul class="bullet-list">
+        <li>La frecuencia superó el umbral de 2,5: la audiencia está viendo los mismos creativos repetidamente. Es la señal más urgente de esta campaña.</li>
+        <li>CTR 1,20% está cerca del baseline (1,30%); el problema no es el hook sino el agotamiento de la audiencia.</li>
+        <li>ATC→Compra en 21,1%: la landing y el checkout funcionan bien.</li>
+        <li><strong>Acción:</strong> Renovar creativos esta semana. El adset Broad_Top_Volumen estaba pausado con ROAS 6,30x — considerar reactivarlo para aliviar la presión sobre Broad_Test_Volumen.</li>
+      </ul>
+    </div>
+
+    <div class="comp-card">
+      <h4>EP_JournalPadresMadres_Lanzamiento — ROAS 4,99x · CTR 0,78% ⚠</h4>
+      <ul class="bullet-list">
+        <li>El CTR de 0,78% está por debajo del umbral de 0,8%: el hook no captura la atención o la audiencia ya está saturada con estos creativos.</li>
+        <li>Sin embargo, el ROAS es el más alto de las campañas de journals (4,99x), lo que indica que quienes hacen clic convierten bien.</li>
+        <li>Patrón clásico de mismatch entre CTR bajo y conversión decente: la audiencia fría no conecta con el hook, pero la audiencia warm sí.</li>
+        <li><strong>Acción:</strong> Testear nuevos hooks. El ad padresmadres_video_papa (ROAS 7,39x) tiene el ganador — escalar con nuevo creativo similar.</li>
+      </ul>
+    </div>
+
+    <div class="comp-card">
+      <h4>EP_Journal_Abuelos — ROAS 3,77x · CPM $1.875 (eficiente)</h4>
+      <ul class="bullet-list">
+        <li>CPM el más bajo de todas las campañas ($1.875 vs baseline $2.655): la audiencia de abuelos tiene menos competencia en subasta.</li>
+        <li>CTR 1,31% exactamente en el baseline. El problema es conversión post-click o precio de ticket.</li>
+        <li>ATC→Compra de 28,2% es el mejor de la cuenta — la intención de compra es alta una vez que llegan a la landing.</li>
+        <li><strong>Acción:</strong> El ad journalabuelos_singleimage_regaloperfecto_mar26 (ROAS 11,46x) tiene potencial de escala. Escalar budget en ese específico.</li>
+      </ul>
+    </div>
+
+    <div class="comp-card">
+      <h4>EP_Journal_Comun+Productividad — ROAS 2,96x · CPM $4.168 ⚠</h4>
+      <ul class="bullet-list">
+        <li>CPM $4.168 es 57% más alto que el baseline — indica saturación de audiencia o competencia alta en el segmento.</li>
+        <li>ROAS 2,96x es el único por debajo del umbral crítico de 3,5x. Esta campaña opera a pérdida efectiva sobre el CAC target.</li>
+        <li>ATC 234 con solo 57 compras (24,4%): no es un problema de checkout, sino de tráfico caro con baja intención de compra real.</li>
+        <li><strong>Acción inmediata:</strong> Revisar segmentación, expandir audiencias o cambiar ángulo creativo. Candidato a pausar el adset Journal_Productividad si no mejora esta semana.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────── SECCIÓN 3: ANÁLISIS POR AD ─────────────── -->
+  <div class="section">
+    <h2><span class="section-number">03</span> Análisis por Ad — Top Performers y Perdedores</h2>
+
+    <h3>Top 8 Ganadores (ROAS &gt; 6x)</h3>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ad</th>
+          <th>Campaña</th>
+          <th>Estado</th>
+          <th>Gasto (ARS)</th>
+          <th>Compras</th>
+          <th>ROAS</th>
+          <th>CTR</th>
+          <th>Frecuencia</th>
+          <th>¿Escalar?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>padresmadres_video_papa</strong></td>
+          <td>JournalPadresMadres</td>
+          <td><span class="badge badge-ok">ACTIVO</span></td>
+          <td>$280.208</td>
+          <td>43</td>
+          <td class="roas-high">7,39x</td>
+          <td>0,78%</td>
+          <td>1,47</td>
+          <td><span class="badge badge-purple">★ ESCALAR</span></td>
+        </tr>
+        <tr>
+          <td><strong>generica_shopping_ia - Copia</strong></td>
+          <td>EP_Test_Ventas_Volumen</td>
+          <td><span class="badge badge-ok">ACTIVO</span></td>
+          <td>$132.978</td>
+          <td>16</td>
+          <td class="roas-high">8,51x</td>
+          <td>1,50%</td>
+          <td>1,78</td>
+          <td><span class="badge badge-purple">★ ESCALAR</span></td>
+        </tr>
+        <tr>
+          <td><strong>productividad_video_4</strong></td>
+          <td>EP_Journal_Comun+Prod.</td>
+          <td><span class="badge badge-ok">ACTIVO</span></td>
+          <td>$45.751</td>
+          <td>7</td>
+          <td class="roas-high">7,10x</td>
+          <td>1,35%</td>
+          <td>1,47</td>
+          <td><span class="badge badge-purple">Escalar</span></td>
+        </tr>
+        <tr>
+          <td>generica_video_flor_2</td>
+          <td>EP_Test_Ventas_Volumen</td>
+          <td><span class="badge badge-ok">ACTIVO</span></td>
+          <td>$10.883</td>
+          <td>2</td>
+          <td class="roas-high">10,77x</td>
+          <td>1,46%</td>
+          <td>1,13</td>
+          <td><span class="badge badge-warn">Aumentar budget</span></td>
+        </tr>
+        <tr>
+          <td>journalabuelos_singleimage_regaloperfecto_mar26</td>
+          <td>EP_Journal_Abuelos</td>
+          <td><span class="badge badge-ok">ACTIVO</span></td>
+          <td>$12.119</td>
+          <td>3</td>
+          <td class="roas-high">11,46x</td>
+          <td>0,42%</td>
+          <td>1,22</td>
+          <td><span class="badge badge-warn">Aumentar budget</span></td>
+        </tr>
+        <tr>
+          <td>padresmadres_singleimage_papa</td>
+          <td>JournalPadresMadres</td>
+          <td><span class="badge badge-ok">ACTIVO</span></td>
+          <td>$6.311</td>
+          <td>2</td>
+          <td class="roas-high">16,91x</td>
+          <td>0,94%</td>
+          <td>1,28</td>
+          <td><span class="badge badge-warn">Aumentar budget</span></td>
+        </tr>
+        <tr>
+          <td>journalabuelos_abrazos_video_2</td>
+          <td>EP_Journal_Abuelos</td>
+          <td><span class="badge badge-ok">ACTIVO</span></td>
+          <td>$8.400</td>
+          <td>2</td>
+          <td class="roas-high">9,71x</td>
+          <td>0,61%</td>
+          <td>1,20</td>
+          <td><span class="badge badge-warn">Aumentar budget</span></td>
+        </tr>
+        <tr>
+          <td>añonuevo_video_organico_feb26_v3</td>
+          <td>EP_Test_Ventas_Volumen</td>
+          <td><span class="badge badge-ok">ACTIVO</span></td>
+          <td>$9.960</td>
+          <td>1</td>
+          <td class="roas-high">7,69x</td>
+          <td>1,27%</td>
+          <td>1,25</td>
+          <td>Monitorear</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Top 5 Perdedores Activos (ROAS &lt; 3x con gasto significativo)</h3>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ad</th>
+          <th>Gasto (ARS)</th>
+          <th>Compras</th>
+          <th>ROAS</th>
+          <th>CTR</th>
+          <th>ATC</th>
+          <th>Frecuencia</th>
+          <th>Diagnóstico</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>journal_video_storytelling_ganador_tuti - Copia 2</strong></td>
+          <td>$463.613</td>
+          <td>28</td>
+          <td class="roas-low">2,46x</td>
+          <td>1,13%</td>
+          <td>143</td>
+          <td>1,67</td>
+          <td>CTR ok, ATC alto pero pocas compras → checkout abandon</td>
+          <td><span class="badge badge-alert">PAUSAR URGENTE</span></td>
+        </tr>
+        <tr>
+          <td><strong>generica_shopping_ia_previass</strong></td>
+          <td>$372.900</td>
+          <td>18</td>
+          <td class="roas-low">2,15x</td>
+          <td>0,98%</td>
+          <td>79</td>
+          <td>1,89</td>
+          <td>CTR bajo del baseline, posible versión inferior al ganador</td>
+          <td><span class="badge badge-alert">PAUSAR URGENTE</span></td>
+        </tr>
+        <tr>
+          <td><strong>parejas_video_sabanas - Copia</strong></td>
+          <td>$189.518</td>
+          <td>7</td>
+          <td class="roas-low">2,13x</td>
+          <td>1,27%</td>
+          <td>87</td>
+          <td>1,27</td>
+          <td>CTR ok pero conversión baja → landing mismatch</td>
+          <td><span class="badge badge-alert">Pausar</span></td>
+        </tr>
+        <tr>
+          <td>padresmadres_video_papa_2</td>
+          <td>$152.774</td>
+          <td>7</td>
+          <td class="roas-low">2,56x</td>
+          <td>0,78%</td>
+          <td>45</td>
+          <td>1,23</td>
+          <td>Versión inferior al padresmadres_video_papa (ROAS 7,39x)</td>
+          <td><span class="badge badge-alert">Pausar</span></td>
+        </tr>
+        <tr>
+          <td>journalabuelos_singleimage_occhiato_2</td>
+          <td>$78.769</td>
+          <td>4</td>
+          <td class="roas-low">2,75x</td>
+          <td>0,88%</td>
+          <td>19</td>
+          <td>1,19</td>
+          <td>CTR bajo, ATC bajo relativo — hook no conecta</td>
+          <td><span class="badge badge-warn">Revisar</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Ads activos con ROAS = 0 (pausar de inmediato)</h3>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ad</th>
+          <th>Gasto (ARS)</th>
+          <th>CTR</th>
+          <th>ATC</th>
+          <th>Compras</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>padresmadres_video_generica_2</td>
+          <td>$29.873</td>
+          <td>0,77%</td>
+          <td>16</td>
+          <td>0</td>
+          <td><span class="badge badge-alert">PAUSAR HOY</span></td>
+        </tr>
+        <tr>
+          <td>familia_video_nadiedicenada</td>
+          <td>$26.790</td>
+          <td>1,43%</td>
+          <td>8</td>
+          <td>0</td>
+          <td><span class="badge badge-alert">PAUSAR HOY</span></td>
+        </tr>
+        <tr>
+          <td>padresmadres_video_broll_mama</td>
+          <td>$16.221</td>
+          <td>0,65%</td>
+          <td>1</td>
+          <td>0</td>
+          <td><span class="badge badge-alert">PAUSAR HOY</span></td>
+        </tr>
+        <tr>
+          <td>journalabuelos_arrepentir_video_mar26</td>
+          <td>$14.268</td>
+          <td>0,92%</td>
+          <td>6</td>
+          <td>0</td>
+          <td><span class="badge badge-alert">PAUSAR HOY</span></td>
+        </tr>
+        <tr>
+          <td>destapados_singleimage_angulos_v2 - Copia</td>
+          <td>$12.322</td>
+          <td>0,56%</td>
+          <td>1</td>
+          <td>0</td>
+          <td><span class="badge badge-alert">PAUSAR HOY</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="font-size:12px;color:#999;margin-top:-10px">Pérdida total acumulada: ~$99.474 ARS · 0 compras registradas</p>
+
+    <h3>Pausados con ROAS alto — Candidatos a reactivar</h3>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ad / Adset</th>
+          <th>Nivel</th>
+          <th>Gasto (ARS)</th>
+          <th>Compras</th>
+          <th>ROAS</th>
+          <th>Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Broad_Top_Volumen</strong></td>
+          <td>Adset</td>
+          <td>$119.623</td>
+          <td>18</td>
+          <td class="roas-high">6,30x ★</td>
+          <td>El único adset que superó el target 6x. Fue pausado, reactivar con prioridad alta.</td>
+        </tr>
+        <tr>
+          <td>padresmadres_video_papa_sticker</td>
+          <td>Ad</td>
+          <td>$6.757</td>
+          <td>1</td>
+          <td class="roas-high">6,50x</td>
+          <td>Muestra activo fue rentable. Testear con mayor presupuesto.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ─────────────── SECCIÓN 4: DIAGNÓSTICO CREATIVO ─────────────── -->
+  <div class="section">
+    <h2><span class="section-number">04</span> Diagnóstico Creativo y Estructural</h2>
+
+    <div class="comp-card">
+      <h4>Patrón ganador de la semana: ángulo emocional + figura familiar</h4>
+      <ul class="bullet-list">
+        <li>Los 3 ads con ROAS más alto y gasto significativo comparten un eje: <strong>figura paterna/materna en contexto de regalo</strong> (padresmadres_video_papa 7,39x · padresmadres_singleimage_papa 16,91x · journalabuelos_singleimage_regaloperfecto 11,46x). Semana del Día del Padre amplificó este ángulo.</li>
+        <li><strong>generica_shopping_ia - Copia</strong> (ROAS 8,51x): el formato "shopping genérico con IA" tiene CTR alto (1,50%) y convierte. Es el único ad no-temático que performa sobre el target.</li>
+        <li><strong>productividad_video_4</strong> (ROAS 7,10x): único ganador en la campaña de Journals más débil. Testear si su ángulo puede levantar a toda la campaña.</li>
+      </ul>
+    </div>
+
+    <div class="comp-card">
+      <h4>Patrón perdedor: copies o variaciones de ads ganadores anteriores</h4>
+      <ul class="bullet-list">
+        <li><strong>journal_video_storytelling_ganador_tuti - Copia 2</strong> y <strong>generica_shopping_ia_previass</strong>: las versiones "copia" y "previa" del ganador gastaron $836K combinados con ROAS de 2,46x y 2,15x. El original ya no funciona copiado — necesita creative refresh.</li>
+        <li><strong>padresmadres_video_papa_2</strong> vs padresmadres_video_papa: misma campaña, ROAS 2,56x vs 7,39x. La diferencia está en el hook o la narrativa del video. Auditar diferencias entre ambos urgente.</li>
+        <li><strong>parejas_video_sabanas - Copia</strong>: CTR decente (1,27%) pero pocas compras → posible mismatch con landing de Parejas.</li>
+      </ul>
+    </div>
+
+    <div class="comp-card">
+      <h4>CTR bajo en Padres y Madres: ¿problema de hook o de audiencia?</h4>
+      <ul class="bullet-list">
+        <li>CTR promedio de la campaña: 0,78%. Sin embargo, el ad padresmadres_video_papa tiene ROAS 7,39x → el video que sí convierte también tiene CTR 0,78%.</li>
+        <li>Conclusión: el CTR bajo no es el problema central; la audiencia del nicho padres es naturalmente más selectiva. El problema está en los creativos que no convierten una vez que llegan (videos papa_2, generica_2, broll_mama).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────────── SECCIÓN 5: TENDENCIAS MENSUALES ─────────────── -->
+  <div class="section">
+    <h2><span class="section-number">05</span> Tendencias Mensuales — Semana vs Acumulado Junio</h2>
+
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Campaña</th>
+          <th>ROAS Semana</th>
+          <th>ROAS Mes (jun acum.)</th>
+          <th>Tendencia</th>
+          <th>Gasto Mes (ARS)</th>
+          <th>Compras Mes</th>
+          <th>Frecuencia Mes</th>
+          <th>Diagnóstico</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>EP_Test_Ventas_Volumen</strong></td>
+          <td class="roas-mid">4,07x</td>
+          <td class="roas-mid">4,35x</td>
+          <td class="trend-arrow-up">↓ Empeora</td>
+          <td>$5.921.669</td>
+          <td>512</td>
+          <td>1,43</td>
+          <td>La semana estuvo 6,5% por debajo del mes. La fatiga (freq 2,55) explica la caída.</td>
+        </tr>
+        <tr>
+          <td><strong>EP_JournalPadresMadres_Lanzamiento</strong></td>
+          <td class="roas-mid">4,99x</td>
+          <td class="roas-mid">5,31x</td>
+          <td class="trend-arrow-up">↓ Empeora</td>
+          <td>$2.353.899</td>
+          <td>235</td>
+          <td>1,31</td>
+          <td>Post-Día del Padre el ROAS bajó. Era una campaña de lanzamiento — considerar pausar o refrescar.</td>
+        </tr>
+        <tr>
+          <td><strong>EP_Journal_Abuelos</strong></td>
+          <td class="roas-mid">3,77x</td>
+          <td class="roas-mid">3,75x</td>
+          <td class="trend-flat">→ Estable</td>
+          <td>$3.089.216</td>
+          <td>257</td>
+          <td>1,20</td>
+          <td>Consistente pero por debajo del target. Escalar el ad ganador podría mover el promedio.</td>
+        </tr>
+        <tr>
+          <td><strong>EP_Journal_Comun+Productividad</strong></td>
+          <td class="roas-low">2,96x</td>
+          <td class="roas-low">3,39x</td>
+          <td class="trend-arrow-up">↓ Empeora fuerte</td>
+          <td>$3.193.924</td>
+          <td>223</td>
+          <td>1,42</td>
+          <td>La semana estuvo 13% por debajo del mes. Deterioro progresivo. Revisar urgente.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="kpi-grid" style="margin-top:20px">
+      <div class="kpi-card">
+        <span class="kpi-val">$14,56M</span>
+        <span class="kpi-label">Gasto Junio Total</span>
+        <div class="kpi-sub">4 campañas · 22 días</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val">1.227</span>
+        <span class="kpi-label">Compras Junio</span>
+        <div class="kpi-sub">$60,7M ARS ingresos</div>
+      </div>
+      <div class="kpi-card warn">
+        <span class="kpi-val">4,17x</span>
+        <span class="kpi-label">ROAS Mensual</span>
+        <div class="kpi-sub">↓ Ninguna campaña alcanza el 6x target</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val">$11.864</span>
+        <span class="kpi-label">CAC Junio</span>
+        <div class="kpi-sub">+18,6% sobre target $10.000</div>
+      </div>
+    </div>
+
+    <div class="warn-box" style="margin-top:20px">
+      <strong>▲ Tendencia general:</strong> Las 4 campañas tienen ROAS de la semana por debajo del acumulado mensual, lo que indica deterioro en la segunda mitad de junio. El refresh creativo es la palanca más urgente. Si esta tendencia continúa esta semana, considerar pause + restruturación de campañas.
+    </div>
+  </div>
+
+  <!-- ─────────────── SECCIÓN 6: ANÁLISIS COMPETITIVO ─────────────── -->
+  <div class="section">
+    <h2><span class="section-number">06</span> Análisis Competitivo Global — Todos los países</h2>
+
+    <p style="color:#666;margin-bottom:22px;font-size:13px">Búsqueda global (country=ALL) por page_id de cada marca. Datos en tiempo real de Meta Ad Library.</p>
+
+    <!-- WNRS -->
+    <div class="comp-card">
+      <h4>We're Not Really Strangers (WNRS) — <span style="color:#D94F4F">96 ads activos globalmente ⚠ Competidor directo activo</span></h4>
+      <p style="margin-bottom:10px;font-size:13px">Último batch lanzado el <strong>15/06/2026</strong> — mismo día que el Día del Padre. Ads más antiguos activos desde 28/05/2026. Moneda: USD. Corriendo paid media de forma agresiva.</p>
+
+      <h3 style="font-size:14px;margin-top:14px;margin-bottom:8px">Ángulos creativos identificados:</h3>
+      <ul class="bullet-list">
+        <li><strong>"You deserve this / You deserve it / This one's for you"</strong> — El eje más usado (6 variantes). Posicionan el producto como <em>auto-regalo</em>, no solo regalo para otros. Alto potencial para EP en el contexto invernal de autocuidado.</li>
+        <li><strong>Carousel de preguntas del juego como hook</strong> — Muestran el contenido real de las cartas directamente en el ad: <em>"Second date energy. | Too soon or | Harder than it looks. | What matters more?"</em> y <em>"Lost yourself? | Be honest. | Big or small."</em> El producto se demuestra antes del clic. Táctica que EP no está usando.</li>
+        <li><strong>"Made with intention." / "The set that gets it."</strong> — Eje de calidad y validación social. Foco en la intencionalidad del diseño del producto.</li>
+        <li><strong>"The Journal That Helps You Open Up" / "A Prompt for Every Feeling"</strong> — WNRS también vende journal y lo pauta activamente. Competencia directa con EP Journals.</li>
+        <li><strong>"The Card Game Everyone's Talking About" / "Go Beyond Small Talk"</strong> — Hooks de social proof y beneficio funcional claro.</li>
+        <li><strong>COMFRT × WNRS brand collaboration</strong> — Colección de apparel (hoodies, sweat suits) con temática mental health: <em>"Your Anxiety Is Lying To You Hoodie"</em>. Amplían audiencia mediante colaboración con marca streetwear y extienden la marca al lifestyle.</li>
+        <li><strong>"The Ick Edition" / "The Family Game Night Upgrade"</strong> — Múltiples ediciones y segmentos: dating, familias, self-care. Explotan la versatilidad del producto.</li>
+      </ul>
+
+      <div class="comp-tags">
+        <span class="tag">96 ads activos</span>
+        <span class="tag">Auto-regalo "you deserve it"</span>
+        <span class="tag">Preguntas del juego como hook</span>
+        <span class="tag">Journal + Card Game + Apparel</span>
+        <span class="tag">Brand collab</span>
+        <span class="tag">Multi-segmento</span>
+        <span class="tag">USD · Mercado global</span>
+      </div>
+
+      <div class="alert-box" style="margin-top:14px">
+        <strong>⚠ Oportunidad táctica para EP:</strong> WNRS usa el carousel de preguntas del juego como hook — el usuario ve el valor del producto antes de hacer clic. EP podría testear mostrar las preguntas de Desconectados o Parejas directamente en el ad creativo. También el eje "te lo merecés" es virgen en las campañas actuales de EP.
+      </div>
+    </div>
+
+    <!-- Intelligent Change -->
+    <div class="comp-card">
+      <h4>Intelligent Change (Five Minute Journal) — <span style="color:#E8921A">100 ads activos · Última actividad 20/06/2026</span></h4>
+      <p style="margin-bottom:10px;font-size:13px">Corriendo testing masivo de ángulos creativos simultáneos. Cada ángulo tiene 7–9 variantes activas. Moneda: USD.</p>
+
+      <ul class="bullet-list">
+        <li><strong>"Train your mind"</strong> — 7 variantes activas (último batch 20/06). Ángulo de desarrollo cognitivo y fortaleza mental. Apunta a audiencias de productividad y bienestar.</li>
+        <li><strong>"A Journal that creates a new routine"</strong> — 9 variantes (19/06). El ángulo de rutina diaria como transformación. Timing invernal perfecto: cuando más se instalan nuevos hábitos.</li>
+        <li><strong>"The world's simplest morning ritual."</strong> — 8 variantes (19/06). El hook de la simplicidad elimina fricción mental. Hace sentir accesible algo que podría parecer complejo.</li>
+      </ul>
+
+      <div class="comp-tags">
+        <span class="tag">100 ads activos</span>
+        <span class="tag">3 ángulos simultáneos en test</span>
+        <span class="tag">Rutina matutina</span>
+        <span class="tag">Hábito diario</span>
+        <span class="tag">Simplicity hook</span>
+        <span class="tag">Múltiples variantes por ángulo</span>
+      </div>
+
+      <p style="margin-top:10px;font-size:12px;color:#666"><strong>Insight para EP Journals:</strong> IC no vende con ángulo de regalo — vende transformación personal. EP debería testear este eje para Journal Normal y Productividad, especialmente con el invierno como contexto de instalación de nuevos hábitos.</p>
+    </div>
+
+    <!-- Nude Project -->
+    <div class="comp-card">
+      <h4>Nude Project — <span style="color:#3D9E6A">981 ads activos — Sin competencia en journals</span></h4>
+      <p style="margin-bottom:10px;font-size:13px">Último batch 18/06/2026. Moneda: EUR (marca española). Volumen masivo de pauta.</p>
+
+      <ul class="bullet-list">
+        <li><strong>Formato dominante: Advantage+ Catalog Shopping</strong> — La gran mayoría de sus 981 ads usan <code>{{product.name}}</code> dinámico o títulos vacíos. Son ads de catálogo de ropa (colección SS26), no de libretas/journals.</li>
+        <li><strong>Nude Project no está pautando sus journals en Meta actualmente</strong> — Su inversión paid está 100% en ropa. El segmento de journals en español sigue siendo territorio de EP sin competencia directa.</li>
+        <li>La escala de 981 ads confirma que su modelo es catálogo dinámico masivo con creativos visuales — modelo opuesto al de EP que trabaja con narrativa y emoción.</li>
+      </ul>
+
+      <div class="comp-tags">
+        <span class="tag">981 ads activos (ropa, no journals)</span>
+        <span class="tag">Catálogo dinámico Advantage+</span>
+        <span class="tag">EUR · España/Europa</span>
+        <span class="tag">Sin competencia en journals</span>
+      </div>
+
+      <div class="ok-box" style="margin-top:10px">
+        <strong>✓ Oportunidad confirmada:</strong> El segmento de journals en español en Meta Ads no tiene competencia paid activa. EP es el único actor invirtiendo en este nicho con creativos narrativos. La ventana sigue abierta.
+      </div>
+    </div>
+
+    <!-- Resumen competitivo -->
+    <h3>Resumen Competitivo — Implicaciones para EP</h3>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Marca</th>
+          <th>Ads activos</th>
+          <th>Ángulo dominante</th>
+          <th>Lo que EP puede tomar prestado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>WNRS</strong></td>
+          <td><span style="color:#D94F4F;font-weight:700">96</span></td>
+          <td>"You deserve it" + carousel de preguntas</td>
+          <td>Mostrar preguntas del juego en el ad · Eje auto-regalo "te lo merecés"</td>
+        </tr>
+        <tr>
+          <td><strong>Intelligent Change</strong></td>
+          <td><span style="color:#E8921A;font-weight:700">100</span></td>
+          <td>Rutina + hábito + simplicidad</td>
+          <td>Eje de transformación personal para journals (sin ángulo de regalo)</td>
+        </tr>
+        <tr>
+          <td><strong>Nude Project</strong></td>
+          <td>981 (ropa)</td>
+          <td>Catálogo dinámico SS26</td>
+          <td>Sin competencia en journals — no hay amenaza inmediata</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ─────────────── SECCIÓN 7: IDEAS DE CONTENIDO ─────────────── -->
+  <div class="section">
+    <h2><span class="section-number">07</span> Ideas de Contenido — Semana 23/06 al 29/06/2026</h2>
+
+    <p style="margin-bottom:20px;color:#666">Contexto estacional: <strong>invierno pleno</strong> en Argentina · <strong>post-Día del Padre</strong> · Deseo emocional dominante: introspección, reconexión con vínculos afectivos, búsqueda de calidez y rutinas en el frío.</p>
+
+    <div class="ideas-grid">
+
+      <div class="idea-card">
+        <div class="idea-num">Idea 01 · Journal Padres y Madres</div>
+        <div class="idea-hook">"¿Cuándo fue la última vez que tu papá te contó algo de verdad?"</div>
+        <div class="idea-meta">Formato: Video 15-30s · Reels + Feed</div>
+        <div class="idea-concepto">Plano íntimo: manos de adulto escribiendo en el journal, voz en off hija/hijo. Corte a reacción emotiva. Sin texto sobre-producido. Tono: auténtico, cálido.</div>
+        <div class="idea-roas">ROAS esperado: 7–9x · Basado en padresmadres_video_papa 7,39x</div>
+      </div>
+
+      <div class="idea-card">
+        <div class="idea-num">Idea 02 · Journal Abuelos</div>
+        <div class="idea-hook">"La historia que tu abuela nunca contó porque nadie se la preguntó."</div>
+        <div class="idea-meta">Formato: Single Image storytelling · Feed</div>
+        <div class="idea-concepto">Foto de cuaderno abierto con letra de abuelo/a. Copy que apela a la culpa amorosa de no haber preguntado. CTA: "Regalale las preguntas."</div>
+        <div class="idea-roas">ROAS esperado: 9–12x · Basado en journalabuelos_singleimage_regaloperfecto 11,46x</div>
+      </div>
+
+      <div class="idea-card">
+        <div class="idea-num">Idea 03 · Journal Normal / Productividad</div>
+        <div class="idea-hook">"30 días de invierno. Lo usé cada mañana. Esto es lo que cambió."</div>
+        <div class="idea-meta">Formato: Video UGC 20-30s · Reels</div>
+        <div class="idea-concepto">Persona 25-35 años, ángulo directo a cámara, habitación con luz cálida. Testimonio honesto de transformación de hábito. Inspirado en estrategia de Intelligent Change "creates a new routine".</div>
+        <div class="idea-roas">ROAS esperado: 7–8x · Basado en productividad_video_4 7,10x</div>
+      </div>
+
+      <div class="idea-card">
+        <div class="idea-num">Idea 04 · Desconectados</div>
+        <div class="idea-hook">"¿Cuántas noches seguidas cenaron mirando el celular?"</div>
+        <div class="idea-meta">Formato: Video corto 10s + carrusel</div>
+        <div class="idea-concepto">Mesa de cena con celulares boca abajo, manos de familia en el centro. Silencio visual roto por risa. El juego como excusa para desconectarse del scroll invernal.</div>
+        <div class="idea-roas">ROAS esperado: 5–6x · Potencial de reach amplio</div>
+      </div>
+
+      <div class="idea-card">
+        <div class="idea-num">Idea 05 · Parejas</div>
+        <div class="idea-hook">"Esto es lo que pasa cuando dos personas se hacen preguntas que nunca hicieron."</div>
+        <div class="idea-meta">Formato: Video UGC pareja real · 30s</div>
+        <div class="idea-concepto">Pareja en ambiente de invierno (cubiertos con manta, mate de fondo). Testimonial de pareja real hablando del juego. Eje de redescubrimiento. Counterpoint al CTR bajo actual de Parejas.</div>
+        <div class="idea-roas">ROAS esperado: 5–6x · Soluciona el mismatch de parejas_video_sabanas</div>
+      </div>
+
+      <div class="idea-card">
+        <div class="idea-num">Idea 06 · Genérico / Multi-producto</div>
+        <div class="idea-hook">"El regalo que hace que la gente diga gracias en serio."</div>
+        <div class="idea-meta">Formato: Shopping Image con IA · Catálogo</div>
+        <div class="idea-concepto">Continuación del ángulo de generica_shopping_ia - Copia (ROAS 8,51x). Variante con foco en regalo invernal. Testear en campaña EP_Test_Ventas_Volumen para aliviar fatiga del adset Broad.</div>
+        <div class="idea-roas">ROAS esperado: 7–9x · Extensión directa del ganador actual</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─────────────── SECCIÓN 8: PLAN DE ACCIÓN ─────────────── -->
+  <div class="section">
+    <h2><span class="section-number">08</span> Plan de Acción Priorizado</h2>
+
+    <ul class="action-list">
+      <li>
+        <div class="action-num urgent">1</div>
+        <div class="action-text">
+          <strong>PAUSAR hoy: 5 ads con ROAS = 0</strong>
+          <span>padresmadres_video_generica_2, familia_video_nadiedicenada, padresmadres_video_broll_mama, journalabuelos_arrepentir_video_mar26, destapados_singleimage_angulos_v2 - Copia. Pérdida: ~$99K ARS · 0 compras.</span>
+        </div>
+      </li>
+      <li>
+        <div class="action-num urgent">2</div>
+        <div class="action-text">
+          <strong>PAUSAR urgente: journal_video_storytelling_ganador_tuti - Copia 2</strong>
+          <span>$463K ARS gastados, ROAS 2,46x. El gasto más alto de la cuenta con el ROAS más bajo entre los activos significativos.</span>
+        </div>
+      </li>
+      <li>
+        <div class="action-num urgent">3</div>
+        <div class="action-text">
+          <strong>PAUSAR urgente: generica_shopping_ia_previass</strong>
+          <span>$372K ARS, ROAS 2,15x. La versión "previa" del shopping ganador está destruyendo el ROAS de la campaña.</span>
+        </div>
+      </li>
+      <li>
+        <div class="action-num high">4</div>
+        <div class="action-text">
+          <strong>REACTIVAR adset Broad_Top_Volumen</strong>
+          <span>Fue pausado con ROAS 6,30x — el único adset que alcanzó el target. Reactivar y asignar budget para aliviar fatiga del Broad_Test_Volumen (freq 2,55).</span>
+        </div>
+      </li>
+      <li>
+        <div class="action-num high">5</div>
+        <div class="action-text">
+          <strong>ESCALAR: padresmadres_video_papa → +40% budget</strong>
+          <span>ROAS 7,39x con $280K de gasto. Es el ad más escalable con gasto significativo de la semana. Aumentar presupuesto del adset que lo contiene.</span>
+        </div>
+      </li>
+      <li>
+        <div class="action-num high">6</div>
+        <div class="action-text">
+          <strong>ESCALAR: generica_shopping_ia - Copia → distribuir en más adsets</strong>
+          <span>ROAS 8,51x con $132K. Testear en otros adsets de EP_Test_Ventas_Volumen y en EP_Journal_Abuelos.</span>
+        </div>
+      </li>
+      <li>
+        <div class="action-num med">7</div>
+        <div class="action-text">
+          <strong>Nuevos creativos para EP_Test_Ventas_Volumen (anti-fatiga)</strong>
+          <span>Frecuencia 2,55 requiere al menos 3 creativos nuevos esta semana. Ideas 04 y 06 son prioritarias para esta campaña.</span>
+        </div>
+      </li>
+      <li>
+        <div class="action-num med">8</div>
+        <div class="action-text">
+          <strong>Revisar y rediseñar EP_Journal_Comun+Productividad</strong>
+          <span>ROAS 2,96x sostenido + CPM $4.168 + tendencia a la baja. Testear productividad_video_4 (ROAS 7,10x) como base para nuevos creativos. Revisar targeting — audiencia puede estar saturada.</span>
+        </div>
+      </li>
+      <li>
+        <div class="action-num med">9</div>
+        <div class="action-text">
+          <strong>Aumentar budget en ads de bajo gasto pero alto ROAS</strong>
+          <span>padresmadres_singleimage_papa (ROAS 16,91x, $6K), journalabuelos_singleimage_regaloperfecto (ROAS 11,46x, $12K), generica_video_flor_2 (ROAS 10,77x, $10K). Tienen señal positiva pero necesitan más inversión para validar a escala.</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+</div><!-- /page -->
+
+<!-- ══════════════════ CONTRAPORTADA ══════════════════ -->
+<div class="back-cover">
+  <h2>En Palabras · Meta Ads</h2>
+  <p>Reporte semana 15/06 al 21/06/2026 · Generado el lunes 22 de junio de 2026</p>
+  <p style="margin-top:12px;font-size:12px;opacity:0.6">Cuenta: En Palabras - Pago Manual · ID: 715603162702046 · Moneda: ARS</p>
+  <p style="margin-top:8px;font-size:12px;opacity:0.6">Próximo reporte: lunes 29 de junio de 2026</p>
+</div>
+
+</body>
+</html>

@@ -46,15 +46,25 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 **Tabla cruda** `meta_campaign_insights` (un row por `campaign_id × adset_id × ad_id × date`):
 
 - Identificación: `campaign_id`, `campaign_name`, `adset_id`, `adset_name`, `ad_id`, `ad_name`, `date`
-- Métricas: `spend`, `impressions`, `clicks`, `conversions`, `reach`, `cpm`, `cpp`, `ctr`, `cpc`, `frequency`, `purchase_roas`, `omni_purchase`, `omni_purchase_value`
-- Meta: `objective`, `status`, `created_at`
+- Métricas base: `spend`, `impressions`, `clicks`, `conversions`, `reach`, `cpm`, `cpp`, `ctr`, `cpc`, `frequency`, `purchase_roas`, `omni_purchase`, `omni_purchase_value`
+- Funnel (conteos): `purchase` (compra web/pixel, ≠ `omni_purchase`), `purchase_value`, `add_to_cart`, `initiate_checkout`, `view_content`, `landing_page_view`
+- Engagement (conteos): `post_save`, `comment`, `link_click`, `shares` (action_type `post`), `post_reaction`
+- Mensajería: `messaging_first_reply` (contactos nuevos), `messaging_started` (conversaciones iniciadas 7d)
+- Calidad/costo: `quality_ranking`, `engagement_rate_ranking`, `conversion_rate_ranking` (TEXT, suelen `UNKNOWN`/vacíos en histórico), `buying_type`, `cpa_purchase`, `website_purchase_roas`
+- Meta: `objective`, `created_at`
+
+> ℹ️ Los rankings vienen de Meta solo para ventanas recientes; en fechas viejas quedan vacíos. `attribution_setting` NO se puede pedir junto a las métricas (Meta deja de devolver impressions/actions), por eso no está.
 
 > ⚠️ `reach`, `frequency` y `purchase_roas` se guardan por fila pero **no se suman** entre anuncios ni días (reach son personas únicas). Para totales correctos a nivel cuenta usá las tablas de cuenta de abajo.
 
 **Nivel cuenta** (vienen de llamadas `level=account` aparte — reach/frequency desduplicados por Meta):
 
-- `meta_account_daily` — una fila por día: `account_id, date, amount_spent, impressions, reach, frequency, ctr, cpm, purchase_roas, omni_purchase, omni_purchase_value`
+- `meta_account_daily` — una fila por día: `account_id, date, amount_spent, impressions, reach, frequency, ctr, cpm, purchase_roas, omni_purchase, omni_purchase_value` + funnel/engagement/mensajería (`purchase, purchase_value, add_to_cart, initiate_checkout, view_content, landing_page_view, post_save, comment, link_click, shares, post_reaction, messaging_first_reply, messaging_started`)
 - `meta_account_totals` — una fila por ventana (`window_label` ∈ `last_7d`, `last_28d`, `mtd`): mismos campos + `period_from, period_to`
+
+**Breakdown por plataforma** `meta_platform_insights` (un row por `campaign × adset × ad × date × publisher_platform × platform_position`): `spend, impressions, clicks, reach, frequency, ctr, cpm, cpc, omni_purchase, omni_purchase_value, purchase, purchase_value, add_to_cart`. `publisher_platform` ∈ `facebook, instagram, audience_network, threads, messenger`; `platform_position` ∈ `feed, instagram_stories, instagram_reels, ...`.
+
+> ⚠️ En `meta_platform_insights` el `reach` **no se suma** entre plataformas/posiciones (Meta lo deduplica). Usalo para `spend`/`compras`/`roas` por plataforma, no para reach total.
 
 **Snapshot de anuncios** `meta_ad_entities` (una fila por anuncio, estado actual): `ad_id (PK), ad_name, campaign_id, campaign_name, adset_id, effective_status, updated_at`
 
@@ -70,8 +80,11 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 
 - `meta-total?window=last_28d` — KPIs del período (fetchMetaTotal): spend, reach, impressions, frequency, ctr, cpm, purchase_roas, omni_purchase
 - `meta-daily?from=&to=` — serie diaria de cuenta (fetchMetaDaily)
-- `meta-ads?from=&to=` — tabla de anuncios + alertas con `effective_status` (fetchMetaAds)
+- `meta-ads?from=&to=` — tabla de anuncios con `effective_status`, CAC, ATC→compra, engagement y mensajería
 - `meta-campaigns` — id + nombre de campañas (fetchCampaigns)
+- `meta-engagement?from=&to=` — engagement + mensajería + funnel por día (nivel cuenta)
+- `meta-por-plataforma?from=&to=` — spend/compras/roas/CTR/CPM por plataforma y posición (IG vs FB, feed/stories/reels)
+- `campanas-por-reach?from=&to=` — reach/impresiones/spend por campaña
 
 **Registry** `dashboards`: `slug (PK), title, author, description, file, created_at`
 

@@ -1,4 +1,4 @@
-const META_API_VERSION = "v21.0";
+const META_API_VERSION = "v25.0";
 const BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
 
 export interface MetaAction {
@@ -28,6 +28,33 @@ export interface MetaInsight {
   actions?: MetaAction[];
   action_values?: MetaAction[];
   purchase_roas?: MetaAction[];
+  // Rankings (solo nivel anuncio; suelen venir "UNKNOWN" en anuncios de bajo volumen)
+  quality_ranking?: string;
+  engagement_rate_ranking?: string;
+  conversion_rate_ranking?: string;
+  buying_type?: string;
+  cost_per_action_type?: MetaAction[];
+  website_purchase_roas?: MetaAction[];
+}
+
+/** Insight con breakdown por plataforma/posición (publisher_platform × platform_position). */
+export interface MetaPlatformInsight {
+  campaign_id: string;
+  adset_id?: string;
+  ad_id?: string;
+  date_start: string;
+  publisher_platform?: string;
+  platform_position?: string;
+  spend?: string;
+  impressions?: string;
+  clicks?: string;
+  reach?: string;
+  frequency?: string;
+  ctr?: string;
+  cpm?: string;
+  cpc?: string;
+  actions?: MetaAction[];
+  action_values?: MetaAction[];
 }
 
 export interface MetaAccountInsight {
@@ -62,6 +89,62 @@ export function pickRoas(arr: MetaAction[] | undefined): number {
   if (!arr || arr.length === 0) return 0;
   const entry = arr.find((a) => a.action_type === "omni_purchase") ?? arr[0];
   return Number(entry?.value) || 0;
+}
+
+/**
+ * Métricas derivadas de los arrays actions/action_values/cost_per_action_type.
+ * Strings de action_type validados contra la API (ver probe jun 2026).
+ * `purchase` (web/pixel) se guarda SEPARADO de `omni_purchase` (todas las superficies)
+ * para no mezclar dos números distintos.
+ */
+export interface ExtractedMetrics {
+  omni_purchase: number;
+  omni_purchase_value: number;
+  purchase: number;
+  purchase_value: number;
+  add_to_cart: number;
+  initiate_checkout: number;
+  view_content: number;
+  landing_page_view: number;
+  post_save: number;
+  comment: number;
+  link_click: number;
+  shares: number;
+  post_reaction: number;
+  messaging_first_reply: number;
+  messaging_started: number;
+  cpa_purchase: number;
+  website_purchase_roas: number;
+}
+
+export function extractMetrics(row: {
+  actions?: MetaAction[];
+  action_values?: MetaAction[];
+  cost_per_action_type?: MetaAction[];
+  website_purchase_roas?: MetaAction[];
+}): ExtractedMetrics {
+  const a = row.actions;
+  const v = row.action_values;
+  const c = row.cost_per_action_type;
+  return {
+    omni_purchase: pickAction(a, "omni_purchase"),
+    omni_purchase_value: pickAction(v, "omni_purchase"),
+    purchase: pickAction(a, "purchase"),
+    purchase_value: pickAction(v, "purchase"),
+    add_to_cart: pickAction(a, "add_to_cart"),
+    initiate_checkout: pickAction(a, "initiate_checkout"),
+    view_content: pickAction(a, "view_content"),
+    landing_page_view: pickAction(a, "landing_page_view"),
+    post_save: pickAction(a, "onsite_conversion.post_save"),
+    comment: pickAction(a, "comment"),
+    link_click: pickAction(a, "link_click"),
+    shares: pickAction(a, "post"),
+    post_reaction: pickAction(a, "post_reaction"),
+    messaging_first_reply: pickAction(a, "onsite_conversion.messaging_first_reply"),
+    messaging_started: pickAction(a, "onsite_conversion.messaging_conversation_started_7d"),
+    cpa_purchase: pickAction(c, "omni_purchase") || pickAction(c, "purchase"),
+    website_purchase_roas: pickRoas(row.website_purchase_roas),
+  };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -136,6 +219,14 @@ export async function fetchCampaignInsights(
     "actions",
     "action_values",
     "purchase_roas",
+    "quality_ranking",
+    "engagement_rate_ranking",
+    "conversion_rate_ranking",
+    "buying_type",
+    "cost_per_action_type",
+    "website_purchase_roas",
+    // OJO: NO agregar "attribution_setting" — Meta deja de devolver impressions/clicks/actions
+    // si se pide junto a las métricas. Validado contra la API (jun 2026).
   ].join(",");
 
   const url =
@@ -150,6 +241,48 @@ export async function fetchCampaignInsights(
     }).toString();
 
   return fetchAllPages<MetaInsight>(url);
+}
+
+/**
+ * Insights a nivel anuncio CON breakdown por plataforma y posición.
+ * Tabla aparte (meta_platform_insights): el reach NO se puede sumar entre
+ * plataformas (Meta lo deduplica), por eso no va en la tabla de totales.
+ */
+export async function fetchPlatformInsights(
+  adAccountId: string,
+  accessToken: string,
+  dateFrom: string,
+  dateTo: string
+): Promise<MetaPlatformInsight[]> {
+  const fields = [
+    "campaign_id",
+    "adset_id",
+    "ad_id",
+    "spend",
+    "impressions",
+    "clicks",
+    "reach",
+    "frequency",
+    "ctr",
+    "cpm",
+    "cpc",
+    "actions",
+    "action_values",
+  ].join(",");
+
+  const url =
+    `${BASE_URL}/act_${adAccountId}/insights?` +
+    new URLSearchParams({
+      fields,
+      time_range: JSON.stringify({ since: dateFrom, until: dateTo }),
+      time_increment: "1",
+      level: "ad",
+      breakdowns: "publisher_platform,platform_position",
+      limit: "500",
+      access_token: accessToken,
+    }).toString();
+
+  return fetchAllPages<MetaPlatformInsight>(url);
 }
 
 /**

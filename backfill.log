@@ -1,0 +1,56 @@
+===== TRAMO 2025-01-01 .. 2025-01-31 =====
+[batch] starting data fetch...
+[meta] fetching ad insights from 2025-01-01 to 2025-01-31
+[meta] received 1027 ad rows
+[meta] upserted 1027 ad rows
+[meta] fetching platform insights from 2025-01-01 to 2025-01-31
+[meta] platform insights failed: Meta API error 400: {"error":{"message":"Invalid parameter","type":"OAuthException","code":100,"error_subcode":1504018,"is_transient":false,"error_user_title":"Se agot\u00f3 el tiempo de espera de la solicitud","error_user_msg":"Usa un intervalo de fechas m\u00e1s acotado, recupera menos datos o usa trabajos asincr\u00f3nicos.","fbtrace_id":"AE8E9jc5SO4w3yXUeMf8R8g"}}
+[meta] fetching ad entities (effective_status)
+[meta] received 1343 ad entities
+[meta] upserted 1343 ad entities
+[meta] fetching account daily from 2025-01-01 to 2025-01-31
+[meta] received 31 account-daily rows
+[meta] upserted 31 account-daily rows
+[meta] upserted account totals: last_7d (2026-06-18..2026-06-24)
+[meta] upserted account totals: last_28d (2026-05-28..2026-06-24)
+[meta] upserted account totals: mtd (2026-06-01..2026-06-24)
+[batch] refreshing materialized views...
+[batch] done
+===== TRAMO 2025-02-01 .. 2025-02-28 =====
+[batch] starting data fetch...
+[meta] fetching ad insights from 2025-02-01 to 2025-02-28
+[meta] received 1103 ad rows
+[meta] upserted 1103 ad rows
+[meta] fetching platform insights from 2025-02-01 to 2025-02-28
+[meta] received 11828 platform rows
+[meta] upserted 11828 platform rows
+[meta] fetching ad entities (effective_status)
+[meta] received 1343 ad entities
+[meta] upserted 1343 ad entities
+[meta] fetching account daily from 2025-02-01 to 2025-02-28
+[meta] received 28 account-daily rows
+[meta] upserted 28 account-daily rows
+[meta] upserted account totals: last_7d (2026-06-18..2026-06-24)
+[meta] upserted account totals: last_28d (2026-05-28..2026-06-24)
+[meta] upserted account totals: mtd (2026-06-01..2026-06-24)
+[batch] refreshing materialized views...
+[batch] done
+===== TRAMO 2025-03-01 .. 2025-03-31 =====
+[batch] starting data fetch...
+[meta] fetching ad insights from 2025-03-01 to 2025-03-31
+[meta] received 1754 ad rows
+[meta] upserted 1754 ad rows
+[meta] fetching platform insights from 2025-03-01 to 2025-03-31
+[meta] platform insights failed: Meta API error 400: {"error":{"message":"Invalid parameter","type":"OAuthException","code":100,"error_subcode":1504018,"is_transient":false,"error_user_title":"Se agot\u00f3 el tiempo de espera de la solicitud","error_user_msg":"Usa un intervalo de fechas m\u00e1s acotado, recupera menos datos o usa trabajos asincr\u00f3nicos.","fbtrace_id":"A9NQnIZx9en0s3zwh31e2SB"}}
+[meta] fetching ad entities (effective_status)
+[meta] received 1343 ad entities
+[meta] upserted 1343 ad entities
+[meta] fetching account daily from 2025-03-01 to 2025-03-31
+[meta] received 31 account-daily rows
+[meta] upserted 31 account-daily rows
+[meta] upserted account totals: last_7d (2026-06-18..2026-06-24)
+[meta] upserted account totals: last_28d (2026-05-28..2026-06-24)
+[meta] upserted account totals: mtd (2026-06-01..2026-06-24)
+[batch] refreshing materialized views...
+[batch] done
+===== TRAMO 2025-04-01 .. 2025-04-30 =====
