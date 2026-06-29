@@ -53,6 +53,10 @@
     .sem-good { color:var(--green); font-weight:700; }
     .sem-warn { color:var(--amber); font-weight:700; }
     .sem-bad  { color:var(--red);   font-weight:700; }
+    /* celdas con fondo de color (semáforo) — para el desglose diario */
+    .cell-good { background:#DFF3E7 !important; color:#1F7A4E; font-weight:700; }
+    .cell-warn { background:#FAEFD6 !important; color:#915100; font-weight:700; }
+    .cell-bad  { background:#FADCDC !important; color:#A12B2B; font-weight:700; }
     .badge { display:inline-block; font-size:.66rem; font-weight:700; padding:2px 8px; border-radius:20px; }
     .b-on { background:#D6F5E4; color:#1F7A4E; } .b-off { background:#eee; color:#666; }
     .table-wrap { overflow-x:auto; }
@@ -244,6 +248,8 @@
         ? (v >= t.good ? 'good' : v >= t.warn ? 'warn' : 'bad')
         : (v <= t.good ? 'good' : v <= t.warn ? 'warn' : 'bad');
     };
+    // versión con fondo de color para celdas (semáforo bien visible)
+    const semBg = (v, t) => { const c = sem(v, t); return c ? 'cell-' + c : ''; };
 
     // ── Formatos ──
     const fmtMoney = n => { n = Number(n)||0;
@@ -634,10 +640,10 @@
           <td><strong>${fmtDate(r.date)}</strong></td>
           <td class="num">${fmtMoneyFull(spend)}</td>
           <td class="num">${fmtN(compras)}</td>
-          <td class="num ${sem(roas,T.roas)}">${fmtX(roas)}</td>
-          <td class="num ${sem(cac,T.cac)}">${cac>0?fmtMoneyFull(cac):'—'}</td>
-          <td class="num ${sem(ctr,T.ctr)}">${fmtPct(ctr)}</td>
-          <td class="num ${sem(cpm,T.cpm)}">${fmtMoneyFull(cpm)}</td>
+          <td class="num ${semBg(roas,T.roas)}">${fmtX(roas)}</td>
+          <td class="num ${semBg(cac,T.cac)}">${cac>0?fmtMoneyFull(cac):'—'}</td>
+          <td class="num ${semBg(ctr,T.ctr)}">${fmtPct(ctr)}</td>
+          <td class="num ${semBg(cpm,T.cpm)}">${fmtMoneyFull(cpm)}</td>
         </tr>`;
       }).join('') || '<tr><td colspan="7" class="muted">Sin datos.</td></tr>';
     }
