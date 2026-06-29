@@ -77,6 +77,8 @@ export interface MetaAdEntity {
   campaign_id?: string;
   adset_id?: string;
   effective_status?: string;
+  updated_time?: string;
+  preview_shareable_link?: string;
   campaign?: { name?: string };
 }
 
@@ -331,7 +333,8 @@ export async function fetchAdEntities(
   const url =
     `${BASE_URL}/act_${adAccountId}/ads?` +
     new URLSearchParams({
-      fields: "id,name,campaign_id,campaign{name},adset_id,effective_status",
+      fields:
+        "id,name,campaign_id,campaign{name},adset_id,effective_status,updated_time,preview_shareable_link",
       limit: "500",
       access_token: accessToken,
     }).toString();

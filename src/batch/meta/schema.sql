@@ -100,6 +100,10 @@ CREATE TABLE IF NOT EXISTS meta_ad_entities (
   updated_at       TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_meta_ad_entities_campaign ON meta_ad_entities(campaign_id);
+-- updated_time: última modificación del ad según Meta (sirve para estimar pausas recientes).
+-- preview_link: link para ver el anuncio sin entrar al Administrador (preview_shareable_link).
+ALTER TABLE meta_ad_entities ADD COLUMN IF NOT EXISTS meta_updated_time TIMESTAMP;
+ALTER TABLE meta_ad_entities ADD COLUMN IF NOT EXISTS preview_link TEXT;
 
 -- Nivel cuenta: reach/frequency desduplicados por día por Meta (no se suman desde anuncios).
 CREATE TABLE IF NOT EXISTS meta_account_daily (

@@ -273,10 +273,13 @@ async function storeAdEntities(adAccountId: string, accessToken: string) {
   await pool.query(
     `
     INSERT INTO meta_ad_entities
-      (ad_id, ad_name, campaign_id, campaign_name, adset_id, effective_status, updated_at)
+      (ad_id, ad_name, campaign_id, campaign_name, adset_id, effective_status,
+       meta_updated_time, preview_link, updated_at)
     SELECT *, NOW() FROM UNNEST(
-      $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[]
-    ) AS t(ad_id, ad_name, campaign_id, campaign_name, adset_id, effective_status)
+      $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[],
+      $7::timestamptz[], $8::text[]
+    ) AS t(ad_id, ad_name, campaign_id, campaign_name, adset_id, effective_status,
+           meta_updated_time, preview_link)
     ON CONFLICT (ad_id)
     DO UPDATE SET
       ad_name = EXCLUDED.ad_name,
@@ -284,6 +287,8 @@ async function storeAdEntities(adAccountId: string, accessToken: string) {
       campaign_name = EXCLUDED.campaign_name,
       adset_id = EXCLUDED.adset_id,
       effective_status = EXCLUDED.effective_status,
+      meta_updated_time = EXCLUDED.meta_updated_time,
+      preview_link = EXCLUDED.preview_link,
       updated_at = NOW()
     `,
     [
@@ -293,6 +298,8 @@ async function storeAdEntities(adAccountId: string, accessToken: string) {
       ads.map((a) => a.campaign?.name ?? null),
       ads.map((a) => a.adset_id ?? null),
       ads.map((a) => a.effective_status ?? null),
+      ads.map((a) => a.updated_time ?? null),
+      ads.map((a) => a.preview_shareable_link ?? null),
     ]
   );
 

@@ -66,7 +66,9 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 
 > ⚠️ En `meta_platform_insights` el `reach` **no se suma** entre plataformas/posiciones (Meta lo deduplica). Usalo para `spend`/`compras`/`roas` por plataforma, no para reach total.
 
-**Snapshot de anuncios** `meta_ad_entities` (una fila por anuncio, estado actual): `ad_id (PK), ad_name, campaign_id, campaign_name, adset_id, effective_status, updated_at`
+**Snapshot de anuncios** `meta_ad_entities` (una fila por anuncio, estado actual): `ad_id (PK), ad_name, campaign_id, campaign_name, adset_id, effective_status, meta_updated_time, preview_link, updated_at`
+
+> ℹ️ `meta_updated_time` = última modificación del ad según Meta (`updated_time`); sirve para estimar pausas recientes (ej. "pausados últimos 7 días" = `effective_status LIKE '%PAUSED%' AND meta_updated_time >= now()-7d`). `preview_link` = `preview_shareable_link` de Meta, un link público para ver el anuncio sin entrar al Administrador. Ambos se pueblan en el batch (`storeAdEntities`). No hay historial de estado: es una foto que se sobrescribe cada corrida.
 
 **Vistas materializadas** (agregaciones de la tabla cruda — refrescar con `bun run db:refresh-views`):
 
@@ -78,13 +80,17 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 
 **Queries nombradas Meta ya disponibles** (`/api/q/<nombre>`):
 
-- `meta-total?window=last_28d` — KPIs del período (fetchMetaTotal): spend, reach, impressions, frequency, ctr, cpm, purchase_roas, omni_purchase
-- `meta-daily?from=&to=` — serie diaria de cuenta (fetchMetaDaily)
-- `meta-ads?from=&to=` — tabla de anuncios con `effective_status`, CAC, ATC→compra, engagement y mensajería
+- `meta-total?window=last_28d` — KPIs del período (fetchMetaTotal): spend, reach, impressions, frequency, ctr, cpm, purchase_roas, omni_purchase. **Solo ventanas fijas** (`last_7d`/`last_28d`/`mtd`) — únicas con reach/frequency deduplicados por Meta.
+- `meta-account-range?from=&to=` — totales de cuenta sumados para un rango **arbitrario** (spend, impressions, omni_purchase/value, landing_page_view, add_to_cart, link_click + cpm, ctr ponderado, purchase_roas, cac, y `cvr` = compras ÷ landing_page_view × 100). **No trae reach/frequency** (Meta los deduplica solo por ventana). Usar esta para rangos a medida y comparaciones; `meta-total` solo para reach/freq en presets.
+- `meta-daily?from=&to=` — serie diaria de cuenta (incluye `landing_page_view` para CVR diario)
+- `meta-ads?from=&to=` — tabla de anuncios con `effective_status`, `preview_link`, CAC, CPM, `avg_frequency` (APROX), ATC→compra, engagement y mensajería
+- `meta-ad-counts` — conteos de inventario: total_ads, active_ads, paused_ads, new_7d (primer día de actividad en últ. 7d), paused_7d (real, vía `meta_updated_time`), stopped_7d (estimado por gasto, respaldo si `meta_updated_time` vacío)
 - `meta-campaigns` — id + nombre de campañas (fetchCampaigns)
 - `meta-engagement?from=&to=` — engagement + mensajería + funnel por día (nivel cuenta)
 - `meta-por-plataforma?from=&to=` — spend/compras/roas/CTR/CPM por plataforma y posición (IG vs FB, feed/stories/reels)
 - `campanas-por-reach?from=&to=` — reach/impresiones/spend por campaña
+
+> ℹ️ **CVR**: no tenemos datos de Tienda Nube. El "CVR" que usan los dashboards es un **proxy de Meta** = compras (`omni_purchase`) ÷ visitas a la web (`landing_page_view`). No es el CVR real de la tienda.
 
 **Registry** `dashboards`: `slug (PK), title, author, description, file, created_at`
 
@@ -117,6 +123,10 @@ All campaigns sorted by total spend descending.
 ### `GET /api/me`
 
 Returns the logged-in user: `{ "id": "...", "email": "user@enpalabras.com.ar", "name": "Full Name", "picture": "..." }`.
+
+### `GET /api/meta/config`
+
+Returns `{ "ad_account_id": "..." }` (el ID de cuenta de Meta del `.env`). Sirve para que los dashboards armen links al Administrador de anuncios: `https://adsmanager.facebook.com/adsmanager/manage/ads?act=<id>&selected_ad_ids=<ad_id>`. Para ver el anuncio sin login conviene usar `preview_link` (de `meta-ads`) en su lugar.
 
 ### `GET /api/health`
 

@@ -7,6 +7,7 @@ SELECT
   e.campaign_id,
   e.campaign_name,
   e.effective_status,
+  e.preview_link,
   COALESCE(SUM(i.spend), 0)               AS amount_spent,
   COALESCE(SUM(i.impressions), 0)         AS impressions,
   COALESCE(SUM(i.clicks), 0)              AS clicks,
@@ -42,5 +43,5 @@ SELECT
 FROM meta_ad_entities e
 LEFT JOIN meta_campaign_insights i
   ON i.ad_id = e.ad_id AND i.date BETWEEN :from AND :to
-GROUP BY e.ad_id, e.ad_name, e.campaign_id, e.campaign_name, e.effective_status
+GROUP BY e.ad_id, e.ad_name, e.campaign_id, e.campaign_name, e.effective_status, e.preview_link
 ORDER BY amount_spent DESC;

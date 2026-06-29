@@ -63,12 +63,44 @@
     a.adlink:hover { text-decoration:underline; }
     .legend-targets { font-size:.76rem; color:#777; margin:4px 0 0; }
     .legend-targets b { color:#555; }
+
+    /* ── Hero ── */
+    .hero {
+      background: radial-gradient(ellipse at 70% 30%, #CE8CEA 0%, #8D52A8 48%, #55306D 100%);
+      border-radius:16px; padding:26px 28px; margin:6px 0 18px; color:#fff;
+    }
+    .hero .logo { font-size:.7rem; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.65); }
+    .hero h1 { color:#fff; font-size:1.7rem; margin:6px 0 2px; }
+    .hero .hsub { font-size:.85rem; color:rgba(255,255,255,.8); margin-bottom:18px; }
+    .hero-kpis { display:flex; gap:16px; flex-wrap:wrap; }
+    .hero-kpi { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25); border-radius:12px; padding:12px 20px; min-width:110px; }
+    .hero-kpi .v { font-size:1.5rem; font-weight:800; }
+    .hero-kpi .l { font-size:.66rem; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,.7); margin-top:2px; }
+
+    /* tinte de fondo en KPIs por estado (como el reporte) */
+    .kpi.good { background:#F1FAF5; } .kpi.warn { background:#FFFBF0; } .kpi.bad { background:#FFF5F5; }
+
+    /* ── Cajas de alerta ── */
+    .boxes { display:grid; gap:10px; }
+    .box { border-radius:8px; padding:12px 16px; font-size:.86rem; border:1px solid; border-left-width:5px; }
+    .box.bad  { background:#FFF5F5; border-color:var(--red); }   .box.bad strong  { color:var(--red); }
+    .box.good { background:#F1FAF5; border-color:var(--green); } .box.good strong { color:var(--green); }
+    .box.warn { background:#FFFBF0; border-color:var(--amber); } .box.warn strong { color:var(--amber); }
+
+    /* badges de acción */
+    .b-scale { background:#EDD9F7; color:#5A2080; } .b-pause { background:#FDDEDE; color:#A12B2B; }
+    .b-review{ background:#FDEFD2; color:#915100; }
   </style>
 </head>
 <body>
   <nav class="back"><a href="/">← Todos los dashboards</a></nav>
-  <h1>Reporte Meta Ads — En Palabras</h1>
-  <p class="sub">Cuenta En Palabras · Meta Ads · ARS · Compras = <em>omni_purchase</em> (todas las superficies)</p>
+
+  <div class="hero">
+    <div class="logo">En Palabras · Meta Ads Analytics</div>
+    <h1>Reporte Meta Ads</h1>
+    <div class="hsub" id="heroSub">Cuenta En Palabras · ARS · Compras = omni_purchase (todas las superficies)</div>
+    <div class="hero-kpis" id="heroKpis"></div>
+  </div>
 
   <div class="controls">
     <button class="preset active" data-w="last_7d">Últimos 7 días</button>
@@ -88,6 +120,9 @@
   <h2>Resumen ejecutivo</h2>
   <div class="kpi-grid" id="kpis"></div>
   <p class="legend-targets" id="targetsLegend"></p>
+
+  <h2>Alertas automáticas</h2>
+  <div class="boxes" id="alerts"></div>
 
   <h2>Inventario de anuncios</h2>
   <div class="inv-grid" id="inv"></div>
@@ -120,13 +155,24 @@
     </table>
   </div>
 
+  <h2>Tendencia por campaña <span class="muted" style="font-weight:400">— período vs mes en curso</span></h2>
+  <div class="card table-wrap">
+    <table>
+      <thead><tr>
+        <th>Campaña</th><th class="num">ROAS período</th><th class="num">ROAS mes</th><th>Tendencia</th>
+        <th class="num">Gasto mes</th><th class="num">Compras mes</th><th class="num">Frec. mes</th>
+      </tr></thead>
+      <tbody id="trendCampBody"></tbody>
+    </table>
+  </div>
+
   <div class="two-col">
     <div>
       <h2>Mejores anuncios (ROAS)</h2>
       <div class="card table-wrap">
         <table><thead><tr>
           <th>Anuncio</th><th class="num">Gasto</th><th class="num">Compras</th>
-          <th class="num">ROAS</th><th class="num">CPM</th><th class="num">Frec.</th><th class="num">CAC</th><th></th>
+          <th class="num">ROAS</th><th class="num">CPM</th><th class="num">Frec.</th><th class="num">CAC</th><th>Acción</th><th></th>
         </tr></thead><tbody id="winBody"></tbody></table>
       </div>
     </div>
@@ -135,8 +181,28 @@
       <div class="card table-wrap">
         <table><thead><tr>
           <th>Anuncio</th><th class="num">Gasto</th><th class="num">Compras</th>
-          <th class="num">ROAS</th><th class="num">CPM</th><th class="num">Frec.</th><th class="num">CAC</th><th></th>
+          <th class="num">ROAS</th><th class="num">CPM</th><th class="num">Frec.</th><th class="num">CAC</th><th>Acción</th><th></th>
         </tr></thead><tbody id="loseBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h2>Activos con ROAS = 0 <span class="muted" style="font-weight:400">— pausar</span></h2>
+      <div class="card table-wrap">
+        <table><thead><tr>
+          <th>Anuncio</th><th class="num">Gasto</th><th class="num">CTR</th><th class="num">ATC</th><th class="num">Compras</th><th></th>
+        </tr></thead><tbody id="zeroBody"></tbody></table>
+        <p class="muted" id="zeroNote" style="margin:8px 4px 0"></p>
+      </div>
+    </div>
+    <div>
+      <h2>Pausados con buen ROAS <span class="muted" style="font-weight:400">— candidatos a reactivar</span></h2>
+      <div class="card table-wrap">
+        <table><thead><tr>
+          <th>Anuncio</th><th class="num">Gasto</th><th class="num">Compras</th><th class="num">ROAS</th><th></th>
+        </tr></thead><tbody id="reactBody"></tbody></table>
       </div>
     </div>
   </div>
@@ -247,16 +313,138 @@
         q('meta-daily', { from: daysAgo(6), to: today() }),          // siempre últimos 7 para el desglose
         win ? q('meta-total', { window: win }) : Promise.resolve([]),  // reach/freq solo si calza preset
         compare ? q('meta-account-range', { from: prevFrom, to: prevTo }) : Promise.resolve([]),
+        q('meta-ads', { from: firstOfMonth(), to: today() }),         // mes en curso para la tendencia por campaña
       ];
-      const [rangeArr, ads, daily, plat, counts, last7, totalArr, prevArr] = await Promise.all(reqs);
+      const [rangeArr, ads, daily, plat, counts, last7, totalArr, prevArr, adsMonth] = await Promise.all(reqs);
 
+      renderHero(rangeArr[0]||{}, from, to);
       renderKpis(rangeArr[0]||{}, totalArr[0]||null, prevArr[0]||null);
+      renderAlerts(rangeArr[0]||{}, ads, totalArr[0]||null);
       renderInventory(counts[0]||{});
       renderTrend(daily);
       renderPlatform(plat);
       renderCampaigns(ads);
+      renderTrendByCampaign(ads, adsMonth);
       renderAds(ads);
+      renderZeroReact(ads);
       renderDays(last7);
+    }
+
+    // Agrega anuncios por campaña → { spend, compras, value, roas, freq }
+    function aggByCampaign(ads) {
+      const by = {};
+      for (const a of ads) {
+        const k = a.campaign_name || a.campaign_id || '—';
+        const c = by[k] = by[k] || { spend:0, compras:0, value:0, freqSum:0, freqN:0 };
+        c.spend   += Number(a.amount_spent)||0;
+        c.compras += Number(a.omni_purchase)||0;
+        c.value   += Number(a.omni_purchase_value)||0;
+        const f = Number(a.avg_frequency)||0; if (f>0){ c.freqSum+=f; c.freqN++; }
+      }
+      for (const k in by) { const c = by[k]; c.roas = c.spend>0 ? c.value/c.spend : 0; c.freq = c.freqN>0 ? c.freqSum/c.freqN : 0; }
+      return by;
+    }
+
+    function renderTrendByCampaign(ads, adsMonth) {
+      const per = aggByCampaign(ads), mon = aggByCampaign(adsMonth);
+      const rows = Object.entries(per).filter(([,c])=> c.spend > 0)
+        .map(([name,c])=>({ name, roasP:c.roas, m: mon[name] || { roas:0, spend:0, compras:0, freq:0 } }))
+        .sort((a,b)=> b.m.spend - a.m.spend);
+
+      document.getElementById('trendCampBody').innerHTML = rows.map(r=>{
+        const diff = r.roasP - r.m.roas;
+        const trend = Math.abs(diff) < 0.1
+          ? '<span class="flat">→ Estable</span>'
+          : diff > 0 ? '<span class="up">▲ Mejora</span>' : '<span class="down">▼ Empeora</span>';
+        return `<tr>
+          <td><strong>${r.name}</strong></td>
+          <td class="num ${sem(r.roasP,T.roas)}">${fmtX(r.roasP)}</td>
+          <td class="num ${sem(r.m.roas,T.roas)}">${fmtX(r.m.roas)}</td>
+          <td>${trend}</td>
+          <td class="num">${fmtMoneyFull(r.m.spend)}</td>
+          <td class="num">${fmtN(r.m.compras)}</td>
+          <td class="num ${sem(r.m.freq,T.freq)}">${r.m.freq>0?r.m.freq.toFixed(2):'—'}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="7" class="muted">Sin campañas con gasto en el período.</td></tr>';
+    }
+
+    function renderHero(r, from, to) {
+      const roas = Number(r.purchase_roas)||0, cac = Number(r.cac)||0;
+      const k = [
+        { v:fmtX(roas), l:'ROAS cuenta' },
+        { v:fmtMoney(r.amount_spent), l:'Gasto ARS' },
+        { v:fmtN(r.omni_purchase), l:'Compras' },
+        { v:fmtMoneyFull(cac), l:'CAC' },
+      ];
+      document.getElementById('heroKpis').innerHTML = k.map(c =>
+        `<div class="hero-kpi"><div class="v">${c.v}</div><div class="l">${c.l}</div></div>`).join('');
+      document.getElementById('heroSub').textContent = `Período ${fmtDate(from)} → ${fmtDate(to)} · Cuenta En Palabras · ARS`;
+    }
+
+    function renderAlerts(r, ads, total) {
+      const out = [];
+      const roas = Number(r.purchase_roas)||0, cac = Number(r.cac)||0, cpm = Number(r.cpm)||0;
+      const compras = Number(r.omni_purchase)||0, atc = Number(r.add_to_cart)||0;
+
+      if (roas && roas < T.roas.warn) out.push({ c:'bad', t:'ROAS CRÍTICO', m:`ROAS de cuenta ${fmtX(roas)} por debajo del umbral crítico de ${fmtX(T.roas.warn)}.` });
+      else if (roas && roas < T.roas.good) out.push({ c:'warn', t:'ROAS BAJO TARGET', m:`ROAS ${fmtX(roas)} por debajo del target de ${fmtX(T.roas.good)}.` });
+      if (cac && cac > T.cac.good) out.push({ c: cac>T.cac.warn?'bad':'warn', t:'CAC ALTO', m:`CAC ${fmtMoneyFull(cac)} sobre el target de ${fmtMoneyFull(T.cac.good)}.` });
+      if (cpm && cpm > T.cpm.warn) out.push({ c:'warn', t:'CPM ELEVADO', m:`CPM ${fmtMoneyFull(cpm)} por encima de la referencia (~${fmtMoneyFull(T.cpm.good)}). Posible saturación de audiencia.` });
+      if (total && Number(total.frequency) >= T.freq.warn) out.push({ c:'bad', t:'FATIGA CREATIVA', m:`Frecuencia ${Number(total.frequency).toFixed(2)} ≥ ${T.freq.warn.toFixed(1)}. La audiencia ve los mismos creativos repetidamente.` });
+
+      // ads activos quemando plata (ROAS = 0)
+      const zero = ads.filter(a => (a.effective_status||'').toUpperCase()==='ACTIVE' && Number(a.amount_spent)>0 && Number(a.omni_purchase)===0);
+      const zeroSpend = zero.reduce((s,a)=> s + (Number(a.amount_spent)||0), 0);
+      if (zero.length) out.push({ c:'bad', t:'ADS ACTIVOS SIN COMPRAS', m:`${zero.length} anuncios activos con gasto y 0 compras en el período. Pérdida: ${fmtMoneyFull(zeroSpend)}. Candidatos a pausar.` });
+
+      // positivos
+      const atcPct = atc>0 ? compras/atc*100 : 0;
+      if (atcPct >= T.atc.good) out.push({ c:'good', t:'ATC → COMPRA SALUDABLE', m:`Ratio ATC→Compra ${fmtPct(atcPct)} en rango top. El checkout no es el problema.` });
+      const withSpend = ads.filter(a => Number(a.amount_spent) > 50000);
+      const top = [...withSpend].sort((a,b)=> Number(b.purchase_roas)-Number(a.purchase_roas))[0];
+      if (top && Number(top.purchase_roas) >= T.roas.good) out.push({ c:'good', t:'TOP AD DEL PERÍODO', m:`${top.ad_name||top.ad_id}: ROAS ${fmtX(top.purchase_roas)} con ${fmtMoneyFull(top.amount_spent)} de gasto. Candidato a escalar.` });
+
+      document.getElementById('alerts').innerHTML = out.length
+        ? out.map(a=>`<div class="box ${a.c}"><strong>${a.c==='good'?'✓':a.c==='warn'?'▲':'⚠'} ${a.t}</strong> — ${a.m}</div>`).join('')
+        : '<div class="box good"><strong>✓ Sin alertas</strong> — Todos los indicadores dentro de los targets en el período.</div>';
+    }
+
+    function adAction(roas, spend, compras) {
+      if (spend>0 && compras===0) return '<span class="badge b-pause">Pausar</span>';
+      if (roas >= T.roas.good) return '<span class="badge b-scale">★ Escalar</span>';
+      if (roas > 0 && roas < T.roas.warn) return '<span class="badge b-pause">Pausar</span>';
+      if (roas > 0 && roas < T.roas.good) return '<span class="badge b-review">Revisar</span>';
+      return '';
+    }
+
+    function renderZeroReact(ads) {
+      const isActive = a => (a.effective_status||'').toUpperCase()==='ACTIVE';
+      const isPaused = a => (a.effective_status||'').toUpperCase().includes('PAUSED');
+
+      // activos con ROAS = 0
+      const zero = ads.filter(a => isActive(a) && Number(a.amount_spent)>0 && Number(a.omni_purchase)===0)
+        .sort((a,b)=> Number(b.amount_spent)-Number(a.amount_spent)).slice(0,8);
+      const zeroSpend = zero.reduce((s,a)=> s+(Number(a.amount_spent)||0), 0);
+      document.getElementById('zeroBody').innerHTML = zero.map(a=>`
+        <tr><td>${a.ad_name||a.ad_id}</td>
+        <td class="num">${fmtMoneyFull(a.amount_spent)}</td>
+        <td class="num">${fmtPct(a.ctr)}</td>
+        <td class="num">${fmtN(a.add_to_cart)}</td>
+        <td class="num">0</td>
+        <td class="num">${adLinkIcon(a)}</td></tr>`).join('')
+        || '<tr><td colspan="6" class="muted">Ningún activo con ROAS 0 en el período. 👌</td></tr>';
+      document.getElementById('zeroNote').textContent = zero.length ? `Pérdida acumulada: ${fmtMoneyFull(zeroSpend)} · 0 compras.` : '';
+
+      // pausados con buen ROAS (candidatos a reactivar)
+      const react = ads.filter(a => isPaused(a) && Number(a.amount_spent)>0 && Number(a.purchase_roas)>=T.roas.good)
+        .sort((a,b)=> Number(b.purchase_roas)-Number(a.purchase_roas)).slice(0,8);
+      document.getElementById('reactBody').innerHTML = react.map(a=>`
+        <tr><td>${a.ad_name||a.ad_id}</td>
+        <td class="num">${fmtMoneyFull(a.amount_spent)}</td>
+        <td class="num">${fmtN(a.omni_purchase)}</td>
+        <td class="num sem-good">${fmtX(a.purchase_roas)}</td>
+        <td class="num">${adLinkIcon(a)}</td></tr>`).join('')
+        || '<tr><td colspan="5" class="muted">Sin pausados con ROAS sobre target en el período.</td></tr>';
     }
 
     function deltaHtml(cur, prev, dir) {
@@ -303,17 +491,23 @@
     const num = x => (x==null ? null : Number(x));
 
     function renderInventory(c) {
+      // Pausados últ. 7d: real (vía meta_updated_time) si ya se pobló; si no, estimado por gasto.
+      const pausedReal = Number(c.paused_7d) > 0;
+      const paused7 = pausedReal ? Number(c.paused_7d) : Number(c.stopped_7d);
       const cards = [
         { v:fmtN(c.active_ads), l:'Ads activos', on:true },
         { v:fmtN(c.total_ads), l:'Ads totales' },
         { v:fmtN(c.paused_ads), l:'Ads pausados' },
         { v:'+'+fmtN(c.new_7d), l:'Nuevos (últ. 7 días)' },
-        { v:'−'+fmtN(c.stopped_7d), l:'Frenados (últ. 7 días)' },
+        { v:'−'+fmtN(paused7), l:'Pausados (últ. 7 días)' },
       ];
       document.getElementById('inv').innerHTML = cards.map(c =>
         `<div class="inv ${c.on?'on':''}"><div class="v">${c.v}</div><div class="l">${c.l}</div></div>`).join('');
       document.getElementById('invNote').textContent =
-        'Estado actual de la cuenta. “Nuevos” = anuncios con su primer día de actividad en los últimos 7 días. “Frenados” = anuncios hoy pausados que gastaban la semana previa y dejaron de gastar (estimado: no guardamos la fecha exacta de pausa).';
+        'Estado actual de la cuenta. “Nuevos” = anuncios con su primer día de actividad en los últimos 7 días. ' +
+        (pausedReal
+          ? '“Pausados (últ. 7 días)” = anuncios cuya última modificación en Meta fue en los últimos 7 días.'
+          : '“Pausados (últ. 7 días)” = estimado por gasto (corré el batch para el dato exacto).');
     }
 
     function renderTrend(daily) {
@@ -391,9 +585,15 @@
     }
 
     function adLinkIcon(a) {
-      if (!adAccountId || !a.ad_id) return '';
-      const url = `https://adsmanager.facebook.com/adsmanager/manage/ads?act=${adAccountId}&selected_ad_ids=${a.ad_id}`;
-      return `<a class="adlink" href="${url}" target="_blank" rel="noopener" title="Ver en el Administrador de anuncios">🔗</a>`;
+      // Preferimos el preview de Meta (no requiere login); si no hay, link al Administrador.
+      if (a.preview_link) {
+        return `<a class="adlink" href="${a.preview_link}" target="_blank" rel="noopener" title="Ver el anuncio (preview)">👁️</a>`;
+      }
+      if (adAccountId && a.ad_id) {
+        const url = `https://adsmanager.facebook.com/adsmanager/manage/ads?act=${adAccountId}&selected_ad_ids=${a.ad_id}`;
+        return `<a class="adlink" href="${url}" target="_blank" rel="noopener" title="Ver en el Administrador de anuncios">🔗</a>`;
+      }
+      return '';
     }
 
     function renderAds(ads) {
@@ -410,6 +610,7 @@
           <td class="num ${sem(cpm,T.cpm)}">${fmtMoneyFull(cpm)}</td>
           <td class="num ${sem(freq,T.freq)}">${freq>0?freq.toFixed(2):'—'}</td>
           <td class="num ${sem(cac,T.cac)}">${cac>0?fmtMoneyFull(cac):'—'}</td>
+          <td>${adAction(roas, Number(a.amount_spent)||0, Number(a.omni_purchase)||0)}</td>
           <td class="num">${adLinkIcon(a)}</td>
         </tr>`;
       };
@@ -419,8 +620,8 @@
       const significant = sortedBySpend.slice(0, sigCount);
       const losers = [...significant].sort((a,b)=> Number(a.purchase_roas) - Number(b.purchase_roas)).slice(0,8);
 
-      document.getElementById('winBody').innerHTML = winners.map(fmtRow).join('') || '<tr><td colspan="8" class="muted">Sin datos.</td></tr>';
-      document.getElementById('loseBody').innerHTML = losers.map(fmtRow).join('') || '<tr><td colspan="8" class="muted">Sin datos.</td></tr>';
+      document.getElementById('winBody').innerHTML = winners.map(fmtRow).join('') || '<tr><td colspan="9" class="muted">Sin datos.</td></tr>';
+      document.getElementById('loseBody').innerHTML = losers.map(fmtRow).join('') || '<tr><td colspan="9" class="muted">Sin datos.</td></tr>';
     }
 
     function renderDays(daily) {

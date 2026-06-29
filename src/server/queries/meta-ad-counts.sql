@@ -21,6 +21,11 @@ SELECT
   (SELECT COUNT(*) FROM meta_ad_entities WHERE effective_status = 'ACTIVE')      AS active_ads,
   (SELECT COUNT(*) FROM meta_ad_entities WHERE effective_status LIKE '%PAUSED%') AS paused_ads,
   (SELECT COUNT(*) FROM first_seen WHERE first_date > (now()::date - 7))         AS new_7d,
+  -- Pausados últimos 7d (REAL): ad hoy pausado cuya última modificación en Meta fue en los últimos 7 días.
+  (SELECT COUNT(*) FROM meta_ad_entities
+     WHERE effective_status LIKE '%PAUSED%'
+       AND meta_updated_time >= (now() - interval '7 days'))                     AS paused_7d,
+  -- Respaldo (estimado por gasto) por si todavía no se pobló meta_updated_time.
   (SELECT COUNT(*)
      FROM meta_ad_entities e
      JOIN prev p ON p.ad_id = e.ad_id
