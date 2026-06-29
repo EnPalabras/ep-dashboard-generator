@@ -9,7 +9,8 @@ SELECT
   cpm,
   purchase_roas,
   omni_purchase,
-  omni_purchase_value
+  omni_purchase_value,
+  landing_page_view
 FROM meta_account_daily
 WHERE date BETWEEN :from AND :to
 ORDER BY date;

@@ -12,6 +12,7 @@ function parseArgs(): { lookbackDays?: number; from?: string; to?: string } {
   const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
   const a = process.argv[2];
   const b = process.argv[3];
+  if (!a) return { lookbackDays: 3 };
   if (isDate(a)) return { from: a, to: isDate(b) ? b : undefined };
   const n = parseInt(a);
   return { lookbackDays: Number.isFinite(n) && n > 0 ? n : 3 };

@@ -91,6 +91,11 @@ router.get("/meta/daily", async (req, res) => {
   }
 });
 
+router.get("/meta/config", (_req, res) => {
+  // ID de cuenta para armar links al Administrador de anuncios desde los dashboards.
+  res.json({ ad_account_id: process.env.META_AD_ACCOUNT_ID || "" });
+});
+
 router.get("/meta/campaigns", async (_req, res) => {
   try {
     const result = await pool.query("SELECT * FROM mv_meta_by_campaign ORDER BY total_spend DESC");
