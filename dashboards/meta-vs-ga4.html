@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meta vs GA4 — Adquisición y Conversiones · En Palabras</title>
+  <link rel="stylesheet" href="/assets/dashboard-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    /* Paleta validada (dataviz): Meta violeta EP · GA4 verde-agua. CVD ΔE 52.9. */
+    :root {
+      --ep:#774293; --ep-light:#BF75D8;
+      --meta:#774293;   /* serie Meta */
+      --ga4:#1baf7a;    /* serie GA4 */
+      --good:#0ca30c; --warn:#E8921A; --bad:#D94F4F;
+      --ink2:#52514e; --muted:#898781; --grid:#e8e4ee;
+    }
+    h1 { color: var(--ep); margin-bottom:2px; }
+    .sub { color: var(--muted); font-size:.9rem; margin-bottom:16px; }
+    h2 { color: var(--ep); border-bottom: 2px solid var(--ep-light); padding-bottom:6px; margin:26px 0 14px; font-size:1.15rem; }
+
+    .period { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:14px 0 8px; }
+    .period button {
+      border:1px solid var(--ep); background:#fff; color:var(--ep); padding:7px 16px;
+      border-radius:20px; cursor:pointer; font-size:.85rem; font-weight:600;
+    }
+    .period button.active { background:var(--ep); color:#fff; }
+    .period .range { color:var(--muted); font-size:.82rem; margin-left:auto; }
+
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:6px; }
+    .kpi { background:#F7F3FA; border-left:4px solid var(--ep); border-radius:10px; padding:15px 17px; }
+    .kpi .v { font-size:1.55rem; font-weight:800; color:var(--ep); line-height:1.05; }
+    .kpi .l { font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:#888; font-weight:600; margin-top:6px; }
+    .kpi .s { font-size:.74rem; color:#a09aa8; margin-top:3px; }
+    .kpi.meta { border-left-color:var(--meta); } .kpi.meta .v { color:var(--meta); }
+    .kpi.ga4  { border-left-color:var(--ga4);  } .kpi.ga4 .v  { color:var(--ga4); }
+    .kpi.gap  { border-left-color:var(--warn); } .kpi.gap .v  { color:var(--warn); }
+
+    /* leyenda de fuente en las cards para no depender del color solo */
+    .tag { display:inline-block; font-size:.62rem; font-weight:800; padding:1px 7px; border-radius:20px; vertical-align:middle; margin-left:6px; letter-spacing:.4px; }
+    .tag.meta { background:#EADFF2; color:var(--meta); } .tag.ga4 { background:#D6F3E7; color:#0f7a53; }
+
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    @media (max-width:820px){ .two-col{ grid-template-columns:1fr; } }
+    .chart-container { height:340px; }
+
+    table { width:100%; border-collapse:collapse; font-size:.86rem; }
+    th { background:var(--ep); color:#fff; text-align:left; padding:9px 11px; font-size:.7rem; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; }
+    td { padding:8px 11px; border-bottom:1px solid #ECE7F1; }
+    tr:nth-child(even) td { background:#FBF9FC; }
+    .num { text-align:right; font-variant-numeric:tabular-nums; }
+    .table-wrap { overflow-x:auto; }
+    .muted { color:var(--muted); font-size:.8rem; }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+    .note { background:#FBF6EE; border:1px solid #EFE3CF; border-radius:10px; padding:12px 16px; font-size:.82rem; color:#6b6252; margin-top:10px; }
+    .note b { color:#4a4335; }
+    #err:empty { display:none; }
+    #err { background:#FDECEC; border:1px solid #F5C6C6; color:#B23B3B; border-radius:8px; padding:10px 14px; margin:10px 0; font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <nav class="back"><a href="/">← Todos los dashboards</a></nav>
+  <h1>Meta vs GA4</h1>
+  <div class="sub">Lo que <b>Meta atribuye</b> vs lo que <b>Google Analytics mide en el sitio</b> — adquisición, compras e ingresos.</div>
+
+  <div class="period">
+    <button data-d="7" class="active">Últimos 7 días</button>
+    <button data-d="28">Últimos 28 días</button>
+    <button data-d="90">Últimos 90 días</button>
+    <button data-d="ytd">Este año</button>
+    <span class="range" id="rangeLbl"></span>
+  </div>
+
+  <div id="err"></div>
+
+  <h2>Resumen — Meta vs GA4</h2>
+  <div class="kpi-grid" id="kpis"></div>
+  <div class="note" id="gapNote"></div>
+
+  <h2>Mix de tráfico por canal <span class="tag ga4">GA4</span></h2>
+  <div class="two-col">
+    <div class="card"><div class="chart-container"><canvas id="channelChart"></canvas></div></div>
+    <div class="card">
+      <div class="table-wrap">
+        <table id="channelTable">
+          <thead><tr><th>Canal</th><th class="num">Sesiones</th><th class="num">Compras</th><th class="num">Ingresos</th><th class="num">Engag.</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <h2>Compras: Meta vs GA4 (diario)</h2>
+  <div class="card">
+    <div style="font-size:.82rem;margin-bottom:8px;">
+      <span class="dot" style="background:var(--meta)"></span>Compras atribuidas por Meta
+      <span class="dot" style="background:var(--ga4);margin-left:16px;"></span>Compras medidas por GA4 (evento <code>purchase</code>)
+    </div>
+    <div class="chart-container"><canvas id="purchasesChart"></canvas></div>
+    <p class="muted" style="margin-top:8px;">Misma unidad (cantidad de compras), un solo eje. La brecha es esperable: Meta suma atribución view-through y cross-device; GA4 cuenta lo que dispara el tag en el sitio.</p>
+  </div>
+
+  <h2>Ingresos: Meta vs GA4 (diario)</h2>
+  <div class="card">
+    <div style="font-size:.82rem;margin-bottom:8px;">
+      <span class="dot" style="background:var(--meta)"></span>Ingresos atribuidos por Meta
+      <span style="margin-left:16px;" class="dot" style="background:var(--ga4)"></span>Ingresos medidos por GA4 (todos los canales)
+    </div>
+    <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+    <p class="muted" style="margin-top:8px;">GA4 incluye <b>todos</b> los canales (orgánico, directo, etc.), por eso su ingreso suele ser mayor al que atribuye Meta a sus ads.</p>
+  </div>
+
+  <h2>Eventos top <span class="tag ga4">GA4</span></h2>
+  <div class="card">
+    <div class="table-wrap">
+      <table id="eventsTable">
+        <thead><tr><th>Evento</th><th class="num">Conteo</th><th class="num">Conversiones</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="muted" style="margin-top:20px;">Meta: totales de cuenta (<code>meta-account-range</code>, <code>meta-daily</code>). GA4: Data API vía <code>ga4-*</code>. El evento de compra en GA4 es <code>purchase</code> (el único key event / conversión; <code>compra_producto</code> es vista de producto, no compra). "Ingresos" de GA4 = <code>total_revenue</code> del sitio; de Meta = valor de compra omni atribuido.</p>
+
+  <script>
+    const API = window.location.origin + '/api/q/';
+    const PURCHASE_EVENT = 'purchase';  // evento de compra real (key event / conversión). OJO: 'compra_producto' es vista de producto, NO compra.
+    const PAID_CHANNELS = ['Paid Social', 'Paid Search', 'Paid Shopping', 'Paid Video', 'Display', 'Cross-network'];
+
+    const daysAgo = n => { const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+    const startOfYear = () => new Date().getFullYear() + '-01-01';
+    const today = () => daysAgo(0);
+
+    const fmtMoney = n => { n = Number(n)||0;
+      if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toLocaleString('es-AR',{maximumFractionDigits:2}) + 'M';
+      if (Math.abs(n) >= 1e3) return '$' + (n/1e3).toLocaleString('es-AR',{maximumFractionDigits:1}) + 'k';
+      return '$' + n.toLocaleString('es-AR',{maximumFractionDigits:0}); };
+    const fmtN = n => (Number(n)||0).toLocaleString('es-AR',{maximumFractionDigits:0});
+    const fmtPct = n => (Number(n)||0).toFixed(1) + '%';
+    const fmtDate = iso => { const [,m,d] = iso.slice(0,10).split('-'); return `${d}/${m}`; };
+
+    async function q(name, params={}) {
+      const url = API + name + (Object.keys(params).length ? '?' + new URLSearchParams(params) : '');
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`${name}: ${r.status}`);
+      return r.json();
+    }
+
+    let channelChart, purchasesChart, revenueChart;
+    const GRID = '#e8e4ee', MUTED = '#898781';
+
+    function rangeFor(d) {
+      if (d === 'ytd') return { from: startOfYear(), to: today() };
+      return { from: daysAgo(Number(d)-1), to: today() };
+    }
+
+    async function load(d) {
+      document.getElementById('err').textContent = '';
+      const { from, to } = rangeFor(d);
+      document.getElementById('rangeLbl').textContent = `${fmtDate(from)} → ${fmtDate(to)}`;
+      try {
+        const [metaTotArr, metaDaily, gaTraffic, gaDaily, gaEvents, gaPurchDaily] = await Promise.all([
+          q('meta-account-range', { from, to }),
+          q('meta-daily', { from, to }),
+          q('ga4-traffic', { from, to }),
+          q('ga4-traffic-daily', { from, to }),
+          q('ga4-events', { from, to }),
+          q('ga4-event-daily', { event: PURCHASE_EVENT, from, to }),
+        ]);
+        const metaTot = metaTotArr[0] || {};
+        renderKpis(metaTot, gaTraffic, gaEvents);
+        renderChannels(gaTraffic);
+        renderPurchases(metaDaily, gaPurchDaily);
+        renderRevenue(metaDaily, gaDaily);
+        renderEvents(gaEvents);
+      } catch (e) {
+        document.getElementById('err').textContent = 'Error cargando datos: ' + e.message;
+      }
+    }
+
+    function renderKpis(m, traffic, events) {
+      const metaSpend = Number(m.amount_spent)||0;
+      const metaBuys  = Number(m.omni_purchase)||0;
+      const metaRev   = Number(m.omni_purchase_value)||0;
+      const metaRoas  = Number(m.purchase_roas)||0;
+
+      const gaSessions = traffic.reduce((s,r)=> s + (Number(r.sessions)||0), 0);
+      const gaRev      = traffic.reduce((s,r)=> s + (Number(r.total_revenue)||0), 0);
+      const paidSess   = traffic.filter(r=> PAID_CHANNELS.includes(r.channel)).reduce((s,r)=> s + (Number(r.sessions)||0), 0);
+      const paidPct    = gaSessions > 0 ? paidSess / gaSessions * 100 : 0;
+      const gaBuysRow  = events.find(e=> e.event_name === PURCHASE_EVENT);
+      const gaBuys     = gaBuysRow ? Number(gaBuysRow.event_count)||0 : 0;
+
+      const cards = [
+        { l:'Gasto Meta', v:fmtMoney(metaSpend), s:'ARS', cls:'meta' },
+        { l:'ROAS Meta', v:(metaRoas).toFixed(2)+'x', s:'ingreso/gasto', cls:'meta' },
+        { l:'Compras Meta', v:fmtN(metaBuys), s:'atribuidas', cls:'meta' },
+        { l:'Compras GA4', v:fmtN(gaBuys), s:PURCHASE_EVENT, cls:'ga4' },
+        { l:'Sesiones GA4', v:fmtN(gaSessions), s:'todos los canales', cls:'ga4' },
+        { l:'Tráfico pago', v:fmtPct(paidPct), s:'de las sesiones', cls:'ga4' },
+        { l:'Ingresos Meta', v:fmtMoney(metaRev), s:'atribuidos', cls:'meta' },
+        { l:'Ingresos GA4', v:fmtMoney(gaRev), s:'medidos en sitio', cls:'ga4' },
+      ];
+      document.getElementById('kpis').innerHTML = cards.map(c =>
+        `<div class="kpi ${c.cls}"><div class="v">${c.v}</div><div class="l">${c.l}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>`
+      ).join('');
+
+      // Nota de brecha de atribución
+      let msg;
+      if (gaBuys > 0 && metaBuys > 0) {
+        const ratio = metaBuys / gaBuys;
+        const diff = Math.abs(ratio - 1) * 100;
+        if (ratio >= 1.05)      msg = `<b>Meta atribuye ${ratio.toFixed(1)}× las compras que mide GA4</b> (${fmtN(metaBuys)} vs ${fmtN(gaBuys)}). Diferencia normal: Meta cuenta atribución view-through y cross-device; GA4 solo lo que ocurre en el sitio con su tag.`;
+        else if (ratio <= 0.95) msg = `<b>GA4 mide más compras que las que atribuye Meta</b> (${fmtN(gaBuys)} vs ${fmtN(metaBuys)}). Buena parte de las compras del sitio no viene (o no se atribuye) a Meta.`;
+        else                    msg = `<b>Meta y GA4 coinciden casi 1:1</b> en compras (${fmtN(metaBuys)} vs ${fmtN(gaBuys)}, ${diff.toFixed(0)}% de diferencia).`;
+      } else {
+        msg = 'No hay suficientes compras en el período para comparar atribución.';
+      }
+      document.getElementById('gapNote').innerHTML = msg;
+    }
+
+    function renderChannels(traffic) {
+      const rows = [...traffic].sort((a,b)=> (Number(b.sessions)||0) - (Number(a.sessions)||0));
+      const labels = rows.map(r=> r.channel);
+      const data = rows.map(r=> Number(r.sessions)||0);
+      const colors = rows.map(r=> PAID_CHANNELS.includes(r.channel) ? '#774293' : '#1baf7a');
+
+      if (channelChart) channelChart.destroy();
+      channelChart = new Chart(document.getElementById('channelChart'), {
+        type:'bar',
+        data:{ labels, datasets:[{ label:'Sesiones', data, backgroundColor:colors, borderRadius:4, borderSkipped:false }] },
+        options:{
+          indexAxis:'y', responsive:true, maintainAspectRatio:false,
+          plugins:{
+            legend:{ display:false },
+            tooltip:{ callbacks:{ label: c=> ` ${fmtN(c.parsed.x)} sesiones` } },
+            title:{ display:false }
+          },
+          scales:{
+            x:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:v=> fmtN(v) } },
+            y:{ grid:{ display:false }, ticks:{ color:'#52514e', font:{ weight:600 } } }
+          }
+        }
+      });
+      // relief: leyenda pago/orgánico fuera del color-solo
+      const tbody = document.querySelector('#channelTable tbody');
+      tbody.innerHTML = rows.map(r=>{
+        const paid = PAID_CHANNELS.includes(r.channel);
+        return `<tr>
+          <td><span class="dot" style="background:${paid?'#774293':'#1baf7a'}"></span>${r.channel}${paid?' <span class="muted">(pago)</span>':''}</td>
+          <td class="num">${fmtN(r.sessions)}</td>
+          <td class="num">${fmtN(r.conversions)}</td>
+          <td class="num">${fmtMoney(r.total_revenue)}</td>
+          <td class="num">${fmtPct(r.engagement_rate_pct)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Une dos series diarias por fecha (union de fechas), devuelve {labels, a[], b[]}
+    function alignDaily(rowsA, keyA, rowsB, keyB) {
+      const map = new Map();
+      for (const r of rowsA) map.set(r.date.slice(0,10), { a:Number(r[keyA])||0, b:0 });
+      for (const r of rowsB) { const k=r.date.slice(0,10); const e=map.get(k)||{a:0,b:0}; e.b=Number(r[keyB])||0; map.set(k,e); }
+      const dates = [...map.keys()].sort();
+      return { labels:dates.map(fmtDate), a:dates.map(d=>map.get(d).a), b:dates.map(d=>map.get(d).b) };
+    }
+
+    function lineOpts(fmt) {
+      return {
+        responsive:true, maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
+        plugins:{
+          legend:{ position:'top', labels:{ usePointStyle:true, color:'#52514e', font:{ weight:600 } } },
+          tooltip:{ callbacks:{ label: c=> ` ${c.dataset.label}: ${fmt(c.parsed.y)}` } }
+        },
+        scales:{
+          x:{ grid:{ display:false }, ticks:{ color:MUTED, maxRotation:0, autoSkip:true, maxTicksLimit:12 } },
+          y:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:v=> fmt(v) }, beginAtZero:true }
+        }
+      };
+    }
+
+    function renderPurchases(metaDaily, gaPurchDaily) {
+      const { labels, a, b } = alignDaily(metaDaily, 'omni_purchase', gaPurchDaily, 'event_count');
+      if (purchasesChart) purchasesChart.destroy();
+      purchasesChart = new Chart(document.getElementById('purchasesChart'), {
+        type:'line',
+        data:{ labels, datasets:[
+          { label:'Compras Meta', data:a, borderColor:'#774293', backgroundColor:'#774293', tension:.3, borderWidth:2, pointRadius:2, pointHoverRadius:5 },
+          { label:'Compras GA4', data:b, borderColor:'#1baf7a', backgroundColor:'#1baf7a', tension:.3, borderWidth:2, pointRadius:2, pointHoverRadius:5 },
+        ]},
+        options: lineOpts(fmtN)
+      });
+    }
+
+    function renderRevenue(metaDaily, gaDaily) {
+      const { labels, a, b } = alignDaily(metaDaily, 'omni_purchase_value', gaDaily, 'total_revenue');
+      if (revenueChart) revenueChart.destroy();
+      revenueChart = new Chart(document.getElementById('revenueChart'), {
+        type:'line',
+        data:{ labels, datasets:[
+          { label:'Ingresos Meta', data:a, borderColor:'#774293', backgroundColor:'#774293', tension:.3, borderWidth:2, pointRadius:2, pointHoverRadius:5 },
+          { label:'Ingresos GA4', data:b, borderColor:'#1baf7a', backgroundColor:'#1baf7a', tension:.3, borderWidth:2, pointRadius:2, pointHoverRadius:5 },
+        ]},
+        options: lineOpts(fmtMoney)
+      });
+    }
+
+    function renderEvents(events) {
+      const rows = [...events].sort((a,b)=> (Number(b.event_count)||0) - (Number(a.event_count)||0)).slice(0, 15);
+      document.querySelector('#eventsTable tbody').innerHTML = rows.map(r=>{
+        const isBuy = r.event_name === PURCHASE_EVENT;
+        return `<tr>
+          <td>${isBuy?'<b>':''}${r.event_name}${isBuy?' 🛒</b>':''}</td>
+          <td class="num">${fmtN(r.event_count)}</td>
+          <td class="num">${fmtN(r.conversions)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.querySelectorAll('.period button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.period button').forEach(b=> b.classList.remove('active'));
+        btn.classList.add('active');
+        load(btn.dataset.d);
+      });
+    });
+    load('28');
+  </script>
+</body>
+</html>
