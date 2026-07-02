@@ -117,11 +117,11 @@
       document.getElementById('rangeLbl').textContent = `${fmtDate(from)} → ${fmtDate(to)}`;
       try {
         const [resumenArr, canal, diario, pago, prod] = await Promise.all([
-          q('ventas-resumen', { from, to }),
-          q('ventas-por-canal', { from, to }),
-          q('ventas-diario', { from, to }),
-          q('ventas-por-pago', { from, to }),
-          q('ventas-top-productos', { from, to }),
+          q('ventas-reales/resumen', { from, to }),
+          q('ventas-reales/por-canal', { from, to }),
+          q('ventas-reales/diario', { from, to }),
+          q('ventas-reales/por-pago', { from, to }),
+          q('ventas-reales/top-productos', { from, to }),
         ]);
         renderKpis(resumenArr[0] || {});
         renderDaily(diario);

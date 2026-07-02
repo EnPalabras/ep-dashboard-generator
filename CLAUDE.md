@@ -16,16 +16,17 @@ Para los flujos más comunes hay slash commands en `.claude/commands/` que ya ti
 
 When a user asks you to create a dashboard, follow these steps:
 
-### 1. Create the HTML file
+### 1. Create the HTML file (+ su SQL hermano)
 
-Create a new `.html` file in the `dashboards/` directory. Use a descriptive slug name (e.g., `meta-weekly-spend.html`).
+Create a new `.html` file in the `dashboards/` directory. Use a descriptive slug name (e.g., `meta-weekly-spend.html`). Sus queries van **co-locadas** en `dashboards/<slug>.sql` (ver sección "Named queries" abajo).
 
 Every dashboard must:
 - Link the base CSS: `<link rel="stylesheet" href="/assets/dashboard-base.css">`
 - Load Chart.js from CDN: `<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>`
 - Include a back link: `<nav class="back"><a href="/">← All Dashboards</a></nav>`
-- Fetch data only from `/api/` endpoints (never external URLs)
+- Fetch data only from `/api/` endpoints (never external URLs) — sus queries desde `dashboards/<slug>.sql` vía `/api/q/<slug>/<query>`
 - Be self-contained (no imports, no build step)
+- Charts: antes de escribir código de gráficos, cargá el skill `dataviz`. Paleta de la casa: violeta EP `#774293`.
 
 ### 2. Register the dashboard in the database
 
@@ -125,13 +126,12 @@ El usuario `ep_analytics` tiene: `SELECT` en `public` (ventas/negocio), y es due
 
 **Tablas útiles de `public`** (schema completo en `server_en_palabras/prisma/schema.prisma`): `Orders` (idEP, channel, status, total_amount, date_created, mail…), `OrdersItems` (product, quantity, total_product_amount), `OrdersPayments` (payment_method, payment_status, payment_received_amount), `OrdersShipping` (carrier, costos, zona), `gastos` (por categoría/área), `cmv_products` (CMV/COGS por producto/mes), `invoices` (facturación AFIP). Los nombres `PascalCase` y la columna `idEP` van **entre comillas** (`public."Orders"`, `o."idEP"`).
 
-**Queries nombradas de ventas** (`/api/q/<slug>`):
+**Dashboards ya armados sobre esta base** (queries co-locadas — ver `dashboards/<slug>.sql`):
 
-- `ventas-resumen?from=&to=` — órdenes, revenue, AOV, clientes.
-- `ventas-por-canal?from=&to=` — revenue/órdenes/AOV por canal.
-- `ventas-diario?from=&to=` — serie diaria de revenue y órdenes.
-- `ventas-por-pago?from=&to=` — monto y órdenes por medio de pago.
-- `ventas-top-productos?from=&to=` — top 20 productos por revenue.
+- **`ventas-reales`** (lee `public`): `/resumen`, `/por-canal`, `/diario`, `/por-pago`, `/top-productos` (todas `?from=&to=`).
+- **`conversion`** (lee `analytics`): `/funnel` (embudo checkout semanal), `/productos` (CVR vista→compra por producto) — `?from=&to=`.
+
+Endpoints: `/api/q/ventas-reales/resumen`, `/api/q/conversion/funnel`, etc.
 
 ## Available API Endpoints
 
@@ -171,29 +171,35 @@ Returns `{ "ad_account_id": "..." }` (el ID de cuenta de Meta del `.env`). Sirve
 
 Health check (no auth required). Returns `{ "status": "ok", "timestamp": "..." }`.
 
-### `GET /api/q/:name` — Named queries (custom SQL per dashboard)
+### `GET /api/q/:slug/:query` — Named queries (co-locadas por dashboard)
 
-Cuando un dashboard necesita una forma de los datos que las vistas existentes no cubren (por ejemplo, spend por campaña con rango de fechas), registralo como **query nombrada** en lugar de inflar las materialized views.
+Cada dashboard tiene **sus queries en un archivo hermano del HTML**: `dashboards/<slug>.html` + `dashboards/<slug>.sql`. Un dashboard = dos archivos; borrás el dashboard, borrás su SQL, sin queries huérfanas.
 
-Cómo:
+Dentro del `.sql`, cada query se separa con el marcador **`-- @query <nombre>`**. El endpoint es **`/api/q/<slug>/<nombre>`**.
 
-1. Crear `src/server/queries/<slug>.sql` con la SQL. Los parámetros se escriben con `:nombre` (no `$1`); el loader los traduce a placeholders posicionales al levantar el server.
+```sql
+-- dashboards/ventas-reales.sql
 
-   ```sql
-   -- src/server/queries/spend-by-campaign-daily.sql
-   SELECT date, campaign_name, SUM(spend) AS spend
-   FROM meta_campaign_insights
-   WHERE date BETWEEN :from AND :to
-   GROUP BY date, campaign_name
-   ORDER BY date;
-   ```
-2. Desde el dashboard, llamar `fetch('/api/q/<slug>?from=...&to=...')`. Los names de los query params del URL tienen que matchear los `:nombre` de la SQL.
+-- @query resumen
+SELECT count(*)::int AS ordenes, sum(total_amount) AS revenue
+FROM public."Orders" o
+WHERE o.date_created::date BETWEEN :from AND :to;
+
+-- @query por-canal
+SELECT channel, sum(total_amount) AS revenue
+FROM public."Orders" o
+WHERE o.date_created::date BETWEEN :from AND :to
+GROUP BY channel ORDER BY revenue DESC;
+```
+
+Desde el HTML: `fetch('/api/q/ventas-reales/resumen?from=...&to=...')`. Los query params del URL tienen que matchear los `:nombre` de la SQL.
 
 Reglas:
-- **Solo `SELECT`**. Nada de `INSERT/UPDATE/DELETE/DROP/ALTER`.
-- Usar siempre `:nombre` para inputs — nunca interpolar strings desde el cliente.
-- Un archivo por query, nombre del archivo en kebab-case (es el `:name` del endpoint).
-- Los casts de Postgres con `::` (ej. `now()::date`) están bien — el loader los ignora.
+- **Solo `SELECT`** (el usuario `ep_analytics` no puede escribir en `public`, pero igual: nada de `INSERT/UPDATE/DELETE/DROP/ALTER`).
+- Usar siempre `:nombre` para inputs — nunca interpolar strings desde el cliente. El loader traduce `:nombre` → `$n` al levantar el server.
+- Marcador exacto `-- @query <nombre>` (kebab-case) en su propia línea. El texto antes del primer marcador es header/comentario, se ignora.
+- Nombres `PascalCase` de tabla y la columna `idEP` van entre comillas: `public."Orders"`, `o."idEP"`.
+- Los casts `::` (ej. `now()::date`) están bien.
 
 ## Available CSS Classes
 

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conversión · En Palabras</title>
+  <link rel="stylesheet" href="/assets/dashboard-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    :root { --ep:#774293; --ep-light:#BF75D8; --ga4:#1baf7a; --muted:#898781; --grid:#e8e4ee; }
+    h1 { color: var(--ep); margin-bottom:2px; }
+    .sub { color: var(--muted); font-size:.9rem; margin-bottom:16px; }
+    h2 { color: var(--ep); border-bottom:2px solid var(--ep-light); padding-bottom:6px; margin:26px 0 14px; font-size:1.15rem; }
+    .period { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:14px 0 8px; }
+    .period button { border:1px solid var(--ep); background:#fff; color:var(--ep); padding:7px 16px; border-radius:20px; cursor:pointer; font-size:.85rem; font-weight:600; }
+    .period button.active { background:var(--ep); color:#fff; }
+    .period .range { color:var(--muted); font-size:.82rem; margin-left:auto; }
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:6px; }
+    .kpi { background:#F7F3FA; border-left:4px solid var(--ep); border-radius:10px; padding:15px 17px; }
+    .kpi .v { font-size:1.55rem; font-weight:800; color:var(--ep); line-height:1.05; }
+    .kpi .l { font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:#888; font-weight:600; margin-top:6px; }
+    .kpi .s { font-size:.74rem; color:#a09aa8; margin-top:3px; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    @media (max-width:820px){ .two-col{ grid-template-columns:1fr; } }
+    .chart-container { height:340px; }
+    table { width:100%; border-collapse:collapse; font-size:.86rem; }
+    th { background:var(--ep); color:#fff; text-align:left; padding:9px 11px; font-size:.7rem; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; }
+    td { padding:8px 11px; border-bottom:1px solid #ECE7F1; }
+    tr:nth-child(even) td { background:#FBF9FC; }
+    .num { text-align:right; font-variant-numeric:tabular-nums; }
+    .table-wrap { overflow-x:auto; }
+    .muted { color:var(--muted); font-size:.8rem; }
+    #err:empty { display:none; }
+    #err { background:#FDECEC; border:1px solid #F5C6C6; color:#B23B3B; border-radius:8px; padding:10px 14px; margin:10px 0; font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <nav class="back"><a href="/">← Todos los dashboards</a></nav>
+  <h1>Conversión</h1>
+  <div class="sub">Embudo de checkout y conversión por producto, medidos por GA4 en el sitio.</div>
+
+  <div class="period">
+    <button data-d="30">Últimas ~4 semanas</button>
+    <button data-d="90" class="active">Últimas ~12 semanas</button>
+    <button data-d="180">Últimos 6 meses</button>
+    <span class="range" id="rangeLbl"></span>
+  </div>
+
+  <div id="err"></div>
+
+  <h2>Embudo de checkout <span class="muted">(última semana del rango)</span></h2>
+  <div class="kpi-grid" id="kpis"></div>
+  <div class="two-col">
+    <div class="card"><div class="chart-container"><canvas id="funnelChart"></canvas></div></div>
+    <div class="card"><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
+  </div>
+
+  <h2>Conversión por producto <span class="muted">(vista → compra, GA4)</span></h2>
+  <div class="card"><div class="table-wrap">
+    <table id="prodTable"><thead><tr><th>Producto</th><th class="num">Vistas</th><th class="num">Carrito</th><th class="num">Compras</th><th class="num">CVR</th></tr></thead><tbody></tbody></table>
+  </div></div>
+
+  <p class="muted" style="margin-top:20px;">Fuente: schema <code>analytics</code> de server_en_palabras (syncs de GA4), solo lectura. Embudo: <code>checkout_dropoff_funnel</code> (semanal). Producto: <code>users_cr_by_product</code> × <code>productsparsed</code>. CVR = compras ÷ vistas de producto × 100.</p>
+
+  <script>
+    const API = window.location.origin + '/api/q/';
+    const daysAgo = n => { const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+    const today = () => daysAgo(0);
+    const fmtN = n => (Number(n)||0).toLocaleString('es-AR',{maximumFractionDigits:0});
+    const fmtPct = n => (Number(n)||0).toFixed(1) + '%';
+    const fmtDate = iso => { const [,m,d] = iso.slice(0,10).split('-'); return `${d}/${m}`; };
+
+    async function q(name, params={}) {
+      const url = API + name + (Object.keys(params).length ? '?' + new URLSearchParams(params) : '');
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`${name}: ${r.status}`);
+      return r.json();
+    }
+
+    let funnelChart, trendChart;
+    const MUTED = '#898781', GRID = '#e8e4ee';
+
+    async function load(d) {
+      document.getElementById('err').textContent = '';
+      const from = daysAgo(Number(d)-1), to = today();
+      document.getElementById('rangeLbl').textContent = `${fmtDate(from)} → ${fmtDate(to)}`;
+      try {
+        const [funnel, productos] = await Promise.all([
+          q('conversion/funnel', { from, to }),
+          q('conversion/productos', { from, to }),
+        ]);
+        renderFunnel(funnel);
+        renderProducts(productos);
+      } catch (e) {
+        document.getElementById('err').textContent = 'Error cargando datos: ' + e.message;
+      }
+    }
+
+    function renderFunnel(rows) {
+      // agrupar por semana
+      const weeks = {};
+      for (const r of rows) {
+        const w = r.week_start_date.slice(0,10);
+        (weeks[w] ??= []).push(r);
+      }
+      const weekKeys = Object.keys(weeks).sort();
+      if (weekKeys.length === 0) { document.getElementById('kpis').innerHTML = '<p class="muted">Sin datos de embudo en el rango.</p>'; return; }
+
+      // última semana → embudo de barras
+      const last = weeks[weekKeys[weekKeys.length-1]].sort((a,b)=>a.step_order-b.step_order);
+      const labels = last.map(s=>s.step_name);
+      const vals = last.map(s=>Number(s.active_users)||0);
+      const start = vals[0]||0, end = vals[vals.length-1]||0;
+      const e2e = start>0 ? end/start*100 : 0;
+
+      const cards = [
+        { l:'Inician checkout', v:fmtN(start) },
+        { l:'Compran', v:fmtN(end) },
+        { l:'Conversión checkout', v:fmtPct(e2e), s:'compra ÷ inicio' },
+        { l:'Abandono total', v:fmtPct(100-e2e), s:'no completan' },
+      ];
+      document.getElementById('kpis').innerHTML = cards.map(c=>
+        `<div class="kpi"><div class="v">${c.v}</div><div class="l">${c.l}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>`).join('');
+
+      if (funnelChart) funnelChart.destroy();
+      funnelChart = new Chart(document.getElementById('funnelChart'), {
+        type:'bar',
+        data:{ labels, datasets:[{ label:'Usuarios', data:vals, backgroundColor:'#774293', borderRadius:4, borderSkipped:false }] },
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ display:false }, title:{ display:true, text:'Embudo — última semana', color:'#52514e' },
+                    tooltip:{ callbacks:{ label:c=>` ${fmtN(c.parsed.x)} usuarios` } } },
+          scales:{ x:{ grid:{ color:GRID }, ticks:{ color:MUTED } }, y:{ grid:{ display:false }, ticks:{ color:'#52514e', font:{ weight:600 } } } } }
+      });
+
+      // tendencia semanal de conversión end-to-end
+      const trend = weekKeys.map(w=>{
+        const steps = weeks[w];
+        const s = Number(steps.find(x=>x.step_order===1)?.active_users)||0;
+        const e = Number(steps.find(x=>x.step_order===4)?.active_users)||0;
+        return { w, cr: s>0 ? e/s*100 : 0 };
+      });
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart(document.getElementById('trendChart'), {
+        type:'line',
+        data:{ labels:trend.map(t=>fmtDate(t.w)), datasets:[{ label:'Conversión checkout', data:trend.map(t=>t.cr), borderColor:'#1baf7a', backgroundColor:'#1baf7a', tension:.3, borderWidth:2, pointRadius:2, pointHoverRadius:5 }] },
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ display:false }, title:{ display:true, text:'Conversión de checkout por semana', color:'#52514e' },
+                    tooltip:{ callbacks:{ label:c=>` ${c.parsed.y.toFixed(1)}%` } } },
+          scales:{ x:{ grid:{ display:false }, ticks:{ color:MUTED, maxRotation:0, autoSkip:true, maxTicksLimit:12 } },
+                   y:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:v=>v+'%' }, beginAtZero:true } } }
+      });
+    }
+
+    function renderProducts(rows) {
+      document.querySelector('#prodTable tbody').innerHTML = rows.map(r=>
+        `<tr><td>${r.producto||'—'}</td><td class="num">${fmtN(r.view_item)}</td><td class="num">${fmtN(r.add_to_cart)}</td><td class="num">${fmtN(r.purchase)}</td><td class="num">${fmtPct(r.cvr)}</td></tr>`
+      ).join('');
+    }
+
+    document.querySelectorAll('.period button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.period button').forEach(b=> b.classList.remove('active'));
+        btn.classList.add('active');
+        load(btn.dataset.d);
+      });
+    });
+    load('90');
+  </script>
+</body>
+</html>

@@ -5,10 +5,12 @@ import { queries, buildValues } from "../queries/index.ts";
 
 const router = Router();
 
-router.get("/q/:name", async (req, res) => {
-  const q = queries[req.params.name];
+// Queries co-locadas por dashboard: /api/q/<slug>/<query> → dashboards/<slug>.sql
+router.get("/q/:slug/:query", async (req, res) => {
+  const name = `${req.params.slug}/${req.params.query}`;
+  const q = queries[name];
   if (!q) {
-    res.status(404).json({ error: `Unknown query: ${req.params.name}` });
+    res.status(404).json({ error: `Unknown query: ${name}` });
     return;
   }
 
@@ -17,7 +19,7 @@ router.get("/q/:name", async (req, res) => {
     const result = await pool.query(q.sql, values);
     res.json(result.rows);
   } catch (err: any) {
-    console.error(`[api] named query "${req.params.name}" failed:`, err.message);
+    console.error(`[api] named query "${name}" failed:`, err.message);
     res.status(500).json({ error: "Query failed" });
   }
 });
