@@ -115,6 +115,26 @@ Segunda fuente de datos, además de Meta. Mismo patrón: batch en `src/batch/ga4
 
 **Registry** `dashboards`: `slug (PK), title, author, description, file, created_at`
 
+## Fuente secundaria: ventas reales (DB de `server_en_palabras`)
+
+Además del pool primario (Meta/GA4 + registry, `DATABASE_URL`), hay un **segundo pool read-only** a la base de producción del e-commerce (`server_en_palabras`), configurado con **`ANALYTICS_DATABASE_URL`** (usuario `ep_analytics`: `SELECT` en `public`, sin escritura). Ahí están las **ventas reales** (TiendaNube, MercadoLibre, Coshowroom…), no proxies.
+
+**Cómo apuntar una query nombrada a esa base:** poné como primera línea del `.sql` la directiva **`-- @db analytics`**. Sin la directiva, la query corre contra el pool primario. El resto es igual (params `:nombre`, endpoint `/api/q/<slug>`).
+
+> ⚠️ **Qué cuenta como venta.** El campo `Orders.status` es estado de *gestión*, no de pago, y **varía por canal** (TiendaNube usa `open`, MercadoLibre `paid`, Coshowroom `closed`). El indicador real de venta es el **pago**: una venta = orden **no cancelada** con al menos un `OrdersPayments.payment_status IN ('paid','approved')`. Revenue = `Orders.total_amount`. Toda query de ventas debe filtrar así (ver `ventas-*.sql`).
+
+**Tablas útiles de `public`** (ver schema completo en `server_en_palabras/prisma/schema.prisma`): `Orders` (idEP, channel, status, total_amount, date_created, mail…), `OrdersItems` (product, quantity, total_product_amount), `OrdersPayments` (payment_method, payment_status, payment_received_amount), `OrdersShipping` (carrier, costos, zona), `gastos` (gastos por categoría/área), `cmv_products` (CMV/COGS por producto/mes), `invoices` (facturación AFIP). Los nombres de tabla `PascalCase` y la columna `idEP` van **entre comillas** (`public."Orders"`, `o."idEP"`).
+
+**Queries nombradas de ventas** (`-- @db analytics`):
+
+- `ventas-resumen?from=&to=` — órdenes, revenue, AOV, clientes.
+- `ventas-por-canal?from=&to=` — revenue/órdenes/AOV por canal.
+- `ventas-diario?from=&to=` — serie diaria de revenue y órdenes.
+- `ventas-por-pago?from=&to=` — monto y órdenes por medio de pago.
+- `ventas-top-productos?from=&to=` — top 20 productos por revenue.
+
+> ℹ️ Esta base tiene mucho más (GA4 funnel/product-CR, Instagram, atribución por orden vía UTM, proyecciones) en el schema `analytics`, pero `ep_analytics` **todavía no** tiene `SELECT` sobre `analytics` (falta el grant). Detalle y plan en `docs/roadmap-fuentes-de-datos.md`.
+
 ## Available API Endpoints
 
 Base URL: the server origin (use `window.location.origin` in dashboards).

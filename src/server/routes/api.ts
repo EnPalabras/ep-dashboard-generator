@@ -1,5 +1,5 @@
 import { Router } from "express";
-import pool from "../db/pool.ts";
+import pool, { analyticsPool } from "../db/pool.ts";
 import { isAllowedView } from "../db/views.ts";
 import { queries, buildValues } from "../queries/index.ts";
 
@@ -12,9 +12,16 @@ router.get("/q/:name", async (req, res) => {
     return;
   }
 
+  // Las queries `-- @db analytics` corren contra la DB read-only de server_en_palabras.
+  const db = q.datasource === "analytics" ? analyticsPool : pool;
+  if (!db) {
+    res.status(503).json({ error: "Analytics datasource not configured (ANALYTICS_DATABASE_URL)" });
+    return;
+  }
+
   try {
     const values = buildValues(q, req.query as Record<string, string | undefined>);
-    const result = await pool.query(q.sql, values);
+    const result = await db.query(q.sql, values);
     res.json(result.rows);
   } catch (err: any) {
     console.error(`[api] named query "${req.params.name}" failed:`, err.message);
