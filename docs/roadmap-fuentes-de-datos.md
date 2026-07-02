@@ -12,7 +12,7 @@ que pega a la API oficial y hace upsert en Postgres, una **GitHub Action** que l
 |--------|--------|--------|-----------|
 | **Meta Ads** | ✅ Implementado | Ya las tenemos (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`) | — |
 | Instagram orgánico | ⏳ Pendiente | Reusa el token de Meta (faltan permisos IG) | Alta (mismo token) |
-| GA4 | ⏳ Pendiente | Falta credencial Google (service account) | Media |
+| GA4 | ✅ Implementado | Service account (`GA_*` en env) | — |
 | TikTok orgánico | ⏳ Pendiente | Falta app + OAuth de TikTok | Baja (API más limitada) |
 
 ---
@@ -51,7 +51,15 @@ Para totales de cuenta: `GET /{ig-user-id}/insights?metric=...&period=day`.
 
 ---
 
-## 3. Google Analytics 4 — sesiones orgánicas
+## 3. Google Analytics 4 — ✅ Hecho
+
+Implementado con alcance **completo** (adquisición + conversiones), no solo orgánico:
+- Módulo `src/batch/ga4/` (client + fetch + schema). Auth por service account, token firmado con `crypto` nativo (sin deps nuevas).
+- Tablas: `ga4_traffic_daily` (date × channel × source × medium) y `ga4_events_daily` (date × event_name).
+- Endpoints: `/api/q/ga4-traffic`, `/api/q/ga4-traffic-daily`, `/api/q/ga4-events`.
+- Backfill cargado desde 2025-01-01 (mismo rango que Meta). Detalle en `CLAUDE.md` → sección GA4.
+
+### Diseño original (referencia) — sesiones orgánicas
 
 **API:** Google Analytics **Data API (GA4)** `v1beta`, método `runReport`. Property `313672428`.
 

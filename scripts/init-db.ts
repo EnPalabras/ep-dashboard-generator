@@ -8,6 +8,8 @@ async function main() {
   console.log("[init-db] creating tables...");
   const schema = readFileSync(path.resolve(import.meta.dir, "../src/batch/meta/schema.sql"), "utf-8");
   await pool.query(schema);
+  const ga4Schema = readFileSync(path.resolve(import.meta.dir, "../src/batch/ga4/schema.sql"), "utf-8");
+  await pool.query(ga4Schema);
   console.log("[init-db] tables created");
 
   const registryPath = path.resolve(import.meta.dir, "../dashboards/registry.json");

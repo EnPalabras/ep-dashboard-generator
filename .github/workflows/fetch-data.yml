@@ -9,6 +9,10 @@ env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   META_AD_ACCOUNT_ID: ${{ secrets.META_AD_ACCOUNT_ID }}
   META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+  GA_PROJECT_ID: ${{ secrets.GA_PROJECT_ID }}
+  GA_PROPERTY_ID: ${{ secrets.GA_PROPERTY_ID }}
+  GA_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GA_SERVICE_ACCOUNT_EMAIL }}
+  GA_PRIVATE_KEY: ${{ secrets.GA_PRIVATE_KEY }}
 
 jobs:
   fetch:

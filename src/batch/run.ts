@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { fetchAndStoreMetaData } from "./meta/fetch.ts";
+import { fetchAndStoreGA4Data } from "./ga4/fetch.ts";
 import { refreshViews } from "../server/db/views.ts";
 import pool from "../server/db/pool.ts";
 
@@ -20,8 +21,17 @@ function parseArgs(): { lookbackDays?: number; from?: string; to?: string } {
 
 async function main() {
   try {
+    const opts = parseArgs();
+
     console.log("[batch] starting data fetch...");
-    await fetchAndStoreMetaData(parseArgs());
+    await fetchAndStoreMetaData(opts);
+
+    // GA4 en su propio try/catch: si falla (credencial, API caída) no tumba a Meta.
+    try {
+      await fetchAndStoreGA4Data(opts);
+    } catch (err) {
+      console.error("[batch] GA4 fetch failed (sigo con el resto):", err);
+    }
 
     console.log("[batch] refreshing materialized views...");
     await refreshViews();

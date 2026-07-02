@@ -92,6 +92,26 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 
 > ℹ️ **CVR**: no tenemos datos de Tienda Nube. El "CVR" que usan los dashboards es un **proxy de Meta** = compras (`omni_purchase`) ÷ visitas a la web (`landing_page_view`). No es el CVR real de la tienda.
 
+## GA4 (Google Analytics)
+
+Segunda fuente de datos, además de Meta. Mismo patrón: batch en `src/batch/ga4/` (pega a la **Google Analytics Data API v1beta**, `runReport`) → upsert en Postgres → queries nombradas. Corre dentro del mismo `bun run batch` (con try/catch propio: si GA4 falla, Meta sigue). Datos cargados desde `2025-01-01` (igual rango que Meta).
+
+**Auth:** service account (rol Lector en la property). Variables de entorno: `GA_PROPERTY_ID`, `GA_SERVICE_ACCOUNT_EMAIL`, `GA_PRIVATE_KEY`, `GA_PROJECT_ID`. El token se firma con `crypto` nativo (sin dependencias nuevas). Schema en `src/batch/ga4/schema.sql`.
+
+**Tablas** (nivel cuenta/día, no se cruzan con las de Meta):
+
+- `ga4_traffic_daily` — una fila por `date × channel × source × medium`: `sessions, total_users, new_users, engaged_sessions, engagement_rate` (0..1), `avg_session_duration` (seg), `conversions`, `total_revenue`. `channel` = `sessionDefaultChannelGroup` de GA4 (`Organic Search`, `Paid Social`, `Direct`, `Paid Search`, `Email`, `Referral`, `Unassigned`, ...). El canal **`Paid Social`** es el tráfico que trae Meta → sirve para cruzar contra las métricas de Meta.
+- `ga4_events_daily` — una fila por `date × event_name`: `event_count`, `conversions`. Eventos reales de GA4 (`page_view`, `view_item`, `session_start`, y el evento de compra **`compra_producto`**, entre otros).
+
+> ℹ️ A diferencia del "CVR proxy" de Meta, `ga4_events_daily.compra_producto` y `ga4_traffic_daily.conversions` son **conversiones reales medidas por GA4** en el sitio. Igual no son Tienda Nube: es lo que mide el tag de GA4.
+> ⚠️ El canal `Unassigned` puede traer `total_revenue` negativo (devoluciones/ajustes que GA4 no atribuye a un canal). Es esperado, no es un bug.
+
+**Queries nombradas GA4** (`/api/q/<nombre>`):
+
+- `ga4-traffic?from=&to=` — sesiones/usuarios/conversiones/revenue por canal (agregado del rango), con `engagement_rate_pct`.
+- `ga4-traffic-daily?from=&to=` — serie diaria de sesiones/usuarios/conversiones/revenue (todos los canales sumados).
+- `ga4-events?from=&to=` — eventos agregados por `event_name` en el rango.
+
 **Registry** `dashboards`: `slug (PK), title, author, description, file, created_at`
 
 ## Available API Endpoints
