@@ -1,4 +1,3 @@
--- @db analytics
 -- Top productos por revenue en ventas reales para un rango
 -- (venta = orden no cancelada con pago paid/approved).
 SELECT

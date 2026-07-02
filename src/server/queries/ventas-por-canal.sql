@@ -1,4 +1,3 @@
--- @db analytics
 -- Ventas reales por canal para un rango (venta = orden no cancelada con pago paid/approved).
 SELECT
   channel,

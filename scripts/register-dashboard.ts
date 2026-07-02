@@ -23,7 +23,7 @@ async function main() {
   const file = fileArg ?? `${slug}.html`;
 
   const result = await pool.query(
-    `INSERT INTO dashboards (slug, title, author, description, file, created_at)
+    `INSERT INTO analytics.dashboards (slug, title, author, description, file, created_at)
      VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
      ON CONFLICT (slug) DO UPDATE
        SET title = EXCLUDED.title,

@@ -19,7 +19,7 @@ interface DashboardEntry {
 router.get("/", async (req, res) => {
   const user = req.user!;
   const { rows: dashboards } = await pool.query<DashboardEntry>(
-    "SELECT slug, title, author, description, file, created_at FROM dashboards ORDER BY created_at DESC"
+    "SELECT slug, title, author, description, file, created_at FROM analytics.dashboards ORDER BY created_at DESC"
   );
 
   // Group by author
@@ -123,7 +123,7 @@ router.get("/", async (req, res) => {
 router.get("/d/:slug", async (req, res) => {
   const { slug } = req.params;
   const { rows } = await pool.query<DashboardEntry>(
-    "SELECT file FROM dashboards WHERE slug = $1",
+    "SELECT file FROM analytics.dashboards WHERE slug = $1",
     [slug]
   );
 

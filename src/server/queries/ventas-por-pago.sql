@@ -1,4 +1,3 @@
--- @db analytics
 -- Medios de pago de las ventas reales para un rango.
 -- Suma los pagos paid/approved de órdenes no canceladas (una orden con pago dividido
 -- puede aparecer en más de un método).

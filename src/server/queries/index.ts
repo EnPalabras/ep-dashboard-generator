@@ -4,20 +4,14 @@ import path from "node:path";
 type CompiledQuery = {
   sql: string;
   paramOrder: string[];
-  /** Fuente de datos: "analytics" = pool read-only a server_en_palabras; si no, pool primario. */
-  datasource: "primary" | "analytics";
 };
 
 const QUERIES_DIR = import.meta.dir;
 const NAMED_PARAM_RE = /(?<!:):([a-zA-Z_][a-zA-Z0-9_]*)/g;
-// Directiva opcional en la 1ra línea del .sql: `-- @db analytics`
-const DATASOURCE_RE = /--\s*@db\s+(analytics|primary)\b/i;
 
 function compile(rawSql: string): CompiledQuery {
   const positions = new Map<string, number>();
   const paramOrder: string[] = [];
-  const datasource: "primary" | "analytics" =
-    rawSql.match(DATASOURCE_RE)?.[1]?.toLowerCase() === "analytics" ? "analytics" : "primary";
   const sql = rawSql.replace(NAMED_PARAM_RE, (_, name: string) => {
     let pos = positions.get(name);
     if (pos === undefined) {
@@ -27,7 +21,7 @@ function compile(rawSql: string): CompiledQuery {
     }
     return `$${pos}`;
   });
-  return { sql, paramOrder, datasource };
+  return { sql, paramOrder };
 }
 
 function loadAll(): Record<string, CompiledQuery> {

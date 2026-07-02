@@ -1,8 +1,11 @@
 name: Fetch Ad Data
 
 on:
-  schedule:
-    - cron: "0 */12 * * *" # Every 12 hours (adjustable)
+  # Schedule pausado: el intake propio de Meta/GA4 (que escribía a la DB vieja gondola)
+  # quedó redundante — la DB única (server_en_palabras) ya tiene esos datos por sus
+  # propios crons. Reactivar cuando se migre el intake acá (Fase 2). Trigger manual disponible.
+  # schedule:
+  #   - cron: "0 */12 * * *"
   workflow_dispatch:
 
 env:

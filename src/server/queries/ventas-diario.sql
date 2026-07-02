@@ -1,4 +1,3 @@
--- @db analytics
 -- Serie diaria de ventas reales para un rango (venta = orden no cancelada con pago paid/approved).
 SELECT
   date_created::date                   AS fecha,

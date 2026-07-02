@@ -1,4 +1,3 @@
--- @db analytics
 -- Totales de ventas reales para un rango.
 -- Venta = orden NO cancelada con al menos un pago paid/approved (cross-canal; el status
 -- de la orden es gestión, no pago: TiendaNube usa 'open', ML 'paid', coshowroom 'closed').
