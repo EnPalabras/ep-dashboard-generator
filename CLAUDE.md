@@ -118,9 +118,26 @@ Segunda fuente de datos, además de Meta. Mismo patrón: batch en `src/batch/ga4
 
 ## Base de datos (una sola: `server_en_palabras`)
 
-> ⚠️ **Estado actual.** La **única** base es la de producción del e-commerce (`server_en_palabras`, `DATABASE_URL`, usuario `ep_analytics`). La DB vieja de este repo (gondola) quedó **jubilada**. Por eso **hoy funcionan solo las queries `ventas-*`** (leen `public`). Las secciones **Meta** y **GA4** de más arriba describen tablas de la DB vieja que **todavía NO están en esta base** — migrar ese intake acá es la próxima fase (ver `docs/roadmap-fuentes-de-datos.md`).
+> **Única base:** la de producción del e-commerce (`server_en_palabras`, `DATABASE_URL`, usuario `ep_analytics`). La DB vieja de este repo (gondola) quedó **jubilada**. Todo vive acá: `public` (ventas/negocio, read-only) y `analytics` (Meta/GA4/funnel/IG + `dashboards`).
 
-El usuario `ep_analytics` tiene: `SELECT` en `public` (ventas/negocio), y es dueño del schema `analytics` (donde vive **`analytics.dashboards`**, el registro). **No** puede escribir en `public`. Todavía **no** tiene `SELECT` sobre las tablas existentes de `analytics` (Meta/GA4/funnel/IG de server_en_palabras) — falta el grant.
+Permisos de `ep_analytics`: `SELECT` en `public` (no escribe ahí), `SELECT` en `analytics`, y **dueño** de las tablas que crea en `analytics` (las nuestras ricas + `dashboards`). Para alimentar las tablas **existentes** de `analytics` (las de Metabase: `instagram_by_day`, `sessions_per_month`, `events_per_month_page`, `checkout_dropoff_funnel`, `users_cr_by_product`) necesita `INSERT/UPDATE` — ver "Batch / ingest" abajo.
+
+## Batch / ingest de datos (corre acá — `bun run batch`)
+
+Todo el intake de analíticas vive en `src/batch/`, orquestado por `run.ts` (cada fuente en su try/catch; una que falle no tumba al resto). Sin dependencias nuevas: todo `fetch` + `crypto`.
+
+- **`meta/`** (rico, nuestro) → `analytics.meta_campaign_insights`, `meta_account_daily`, `meta_account_totals`, `meta_platform_insights`, `meta_ad_entities`. Env: `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`. **Tablas nuestras (ep_analytics las posee) — sin grant extra.**
+- **`ga4/`** (rico, nuestro) → `analytics.ga4_traffic_daily`, `ga4_events_daily`. Env: `GA_*`. **Tablas nuestras.**
+- **`ga4-reports/`** (portado de server_en_palabras) → tablas **existentes** `sessions_per_month`, `events_per_month_page`, `users_cr_by_product`, `checkout_dropoff_funnel`. Usa `runReport` + `runFunnelReport` (v1alpha). **Necesita `INSERT/UPDATE` en esas tablas.**
+- **`instagram/`** (portado) → tabla **existente** `instagram_by_day`. Env: `META_INSTAGRAM_ACCOUNT_ID` + `META_ACCESS_TOKEN` (token con permisos `instagram_*`). **Necesita `INSERT/UPDATE`.**
+
+> ⚠️ **Grant pendiente** para que el batch alimente las tablas existentes de Metabase (correr como `postgres`):
+> ```sql
+> GRANT INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA analytics TO ep_analytics;
+> GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA analytics TO ep_analytics;
+> ALTER DEFAULT PRIVILEGES IN SCHEMA analytics GRANT INSERT, UPDATE, DELETE ON TABLES TO ep_analytics;
+> ```
+> Sin el grant, `meta/` y `ga4/` (tablas nuestras) funcionan igual; `ga4-reports/` e `instagram/` fallan con `permission denied` (42501) hasta correrlo. `meta_ad_report` queda intacta/vacía a propósito (usamos las tablas Meta ricas).
 
 > ⚠️ **Qué cuenta como venta.** `Orders.status` es estado de *gestión*, no de pago, y **varía por canal** (TiendaNube `open`, MercadoLibre `paid`, Coshowroom `closed`). El indicador real es el **pago**: venta = orden **no cancelada** con al menos un `OrdersPayments.payment_status IN ('paid','approved')`. Revenue = `Orders.total_amount`. Toda query de ventas filtra así (ver `ventas-*.sql`).
 

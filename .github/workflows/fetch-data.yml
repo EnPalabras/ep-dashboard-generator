@@ -1,17 +1,15 @@
 name: Fetch Ad Data
 
 on:
-  # Schedule pausado: el intake propio de Meta/GA4 (que escribía a la DB vieja gondola)
-  # quedó redundante — la DB única (server_en_palabras) ya tiene esos datos por sus
-  # propios crons. Reactivar cuando se migre el intake acá (Fase 2). Trigger manual disponible.
-  # schedule:
-  #   - cron: "0 */12 * * *"
+  schedule:
+    - cron: "0 */12 * * *" # cada 12 h
   workflow_dispatch:
 
 env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   META_AD_ACCOUNT_ID: ${{ secrets.META_AD_ACCOUNT_ID }}
   META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+  META_INSTAGRAM_ACCOUNT_ID: ${{ secrets.META_INSTAGRAM_ACCOUNT_ID }}
   GA_PROJECT_ID: ${{ secrets.GA_PROJECT_ID }}
   GA_PROPERTY_ID: ${{ secrets.GA_PROPERTY_ID }}
   GA_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GA_SERVICE_ACCOUNT_EMAIL }}

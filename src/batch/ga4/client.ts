@@ -80,6 +80,8 @@ export interface ReportRequest {
   metrics: string[];
   startDate: string;
   endDate: string;
+  /** Filtro de dimensión GA4 crudo (ej. eventName inListFilter). */
+  dimensionFilter?: unknown;
 }
 
 /**
@@ -104,6 +106,7 @@ export async function runReport(creds: GA4Credentials, req: ReportRequest): Prom
       limit: String(pageSize),
       offset: String(offset),
       keepEmptyRows: false,
+      ...(req.dimensionFilter ? { dimensionFilter: req.dimensionFilter } : {}),
     };
 
     const res = await fetch(url, {
@@ -136,4 +139,51 @@ export async function runReport(creds: GA4Credentials, req: ReportRequest): Prom
 /** GA4 devuelve `date` como "YYYYMMDD" (sin guiones). Lo pasamos a "YYYY-MM-DD". */
 export function ga4DateToISO(yyyymmdd: string): string {
   return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
+}
+
+export interface FunnelStep {
+  step_order: number;
+  step_name: string;
+  active_users: number;
+  completion_rate: number;
+  abandonments: number;
+  abandonment_rate: number;
+}
+
+interface FunnelResponse {
+  funnelTable?: { rows?: { dimensionValues?: { value: string }[]; metricValues?: { value: string }[] }[] };
+}
+
+/**
+ * runFunnelReport (v1alpha) para un embudo de pasos. `steps` es el array de pasos
+ * en formato GA4 (funnelEventFilter). Devuelve una fila por paso, en orden.
+ */
+export async function runFunnelReport(
+  creds: GA4Credentials,
+  startDate: string,
+  endDate: string,
+  steps: unknown[]
+): Promise<FunnelStep[]> {
+  const token = await getAccessToken(creds.clientEmail, creds.privateKey);
+  const url = `https://analyticsdata.googleapis.com/v1alpha/properties/${creds.propertyId}:runFunnelReport`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ dateRanges: [{ startDate, endDate }], funnel: { steps } }),
+  });
+  if (!res.ok) throw new Error(`GA4 runFunnelReport error ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as FunnelResponse;
+  const rows = json.funnelTable?.rows ?? [];
+  return rows.map((row, i) => {
+    const stepName = (row.dimensionValues?.[0]?.value ?? "").replace(/^\d+\.\s*/, "");
+    const mv = (row.metricValues ?? []).map((m) => m.value);
+    return {
+      step_order: i + 1,
+      step_name: stepName,
+      active_users: parseInt(mv[0] ?? "0", 10) || 0,
+      completion_rate: mv[1] != null ? parseFloat(mv[1]) : 0,
+      abandonments: parseInt(mv[2] ?? "0", 10) || 0,
+      abandonment_rate: mv[3] != null ? parseFloat(mv[3]) : 0,
+    };
+  });
 }

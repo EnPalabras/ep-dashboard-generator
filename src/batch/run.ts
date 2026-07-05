@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { fetchAndStoreMetaData } from "./meta/fetch.ts";
 import { fetchAndStoreGA4Data } from "./ga4/fetch.ts";
-import { refreshViews } from "../server/db/views.ts";
+import { fetchAndStoreGA4Reports } from "./ga4-reports/fetch.ts";
+import { fetchAndStoreInstagram } from "./instagram/fetch.ts";
 import pool from "../server/db/pool.ts";
 
 // Uso:
@@ -19,30 +20,29 @@ function parseArgs(): { lookbackDays?: number; from?: string; to?: string } {
   return { lookbackDays: Number.isFinite(n) && n > 0 ? n : 3 };
 }
 
-async function main() {
+// Cada fuente en su propio try/catch: si una cae (credencial, API, permiso) no tumba al resto.
+async function step(name: string, fn: () => Promise<unknown>) {
   try {
-    const opts = parseArgs();
-
-    console.log("[batch] starting data fetch...");
-    await fetchAndStoreMetaData(opts);
-
-    // GA4 en su propio try/catch: si falla (credencial, API caída) no tumba a Meta.
-    try {
-      await fetchAndStoreGA4Data(opts);
-    } catch (err) {
-      console.error("[batch] GA4 fetch failed (sigo con el resto):", err);
-    }
-
-    console.log("[batch] refreshing materialized views...");
-    await refreshViews();
-
-    console.log("[batch] done");
-  } catch (err) {
-    console.error("[batch] failed:", err);
-    process.exit(1);
-  } finally {
-    await pool.end();
+    await fn();
+  } catch (err: any) {
+    console.error(`[batch] ${name} FALLÓ (sigo con el resto):`, err?.message ?? err);
   }
+}
+
+async function main() {
+  const opts = parseArgs();
+  console.log("[batch] starting...");
+
+  // Ingest propio (rico) → tablas nuestras en analytics (ep_analytics las posee).
+  await step("meta (rich)", () => fetchAndStoreMetaData(opts));
+  await step("ga4 daily (rich)", () => fetchAndStoreGA4Data(opts));
+
+  // Ingest portado de server_en_palabras → tablas existentes de analytics (necesita write grant).
+  await step("ga4 reports (sessions/events/funnel/product)", () => fetchAndStoreGA4Reports());
+  await step("instagram", () => fetchAndStoreInstagram(opts.lookbackDays ?? 10));
+
+  console.log("[batch] done");
+  await pool.end();
 }
 
 main();
