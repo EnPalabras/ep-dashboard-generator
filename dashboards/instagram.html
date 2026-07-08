@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram orgánico · En Palabras</title>
+  <link rel="stylesheet" href="/assets/dashboard-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    :root { --ep:#774293; --ep-light:#BF75D8; --ga4:#1baf7a; --muted:#898781; --grid:#e8e4ee; }
+    h1 { color: var(--ep); margin-bottom:2px; }
+    .sub { color: var(--muted); font-size:.9rem; margin-bottom:16px; }
+    h2 { color: var(--ep); border-bottom:2px solid var(--ep-light); padding-bottom:6px; margin:26px 0 14px; font-size:1.15rem; }
+    .period { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:14px 0 8px; }
+    .period button { border:1px solid var(--ep); background:#fff; color:var(--ep); padding:7px 16px; border-radius:20px; cursor:pointer; font-size:.85rem; font-weight:600; }
+    .period button.active { background:var(--ep); color:#fff; }
+    .period .range { color:var(--muted); font-size:.82rem; margin-left:auto; }
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:6px; }
+    .kpi { background:#F7F3FA; border-left:4px solid var(--ep); border-radius:10px; padding:15px 17px; }
+    .kpi .v { font-size:1.5rem; font-weight:800; color:var(--ep); line-height:1.05; }
+    .kpi .l { font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:#888; font-weight:600; margin-top:6px; }
+    .kpi .s { font-size:.74rem; color:#a09aa8; margin-top:3px; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    @media (max-width:820px){ .two-col{ grid-template-columns:1fr; } }
+    .chart-container { height:320px; }
+    .muted { color:var(--muted); font-size:.8rem; }
+    #err:empty { display:none; }
+    #err { background:#FDECEC; border:1px solid #F5C6C6; color:#B23B3B; border-radius:8px; padding:10px 14px; margin:10px 0; font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <nav class="back"><a href="/">← Todos los dashboards</a></nav>
+  <h1>Instagram orgánico</h1>
+  <div class="sub">Alcance, engagement y crecimiento de la cuenta (no incluye pauta). Fuente: Instagram Insights.</div>
+
+  <div class="period">
+    <button data-d="7">7 días</button>
+    <button data-d="30" class="active">30 días</button>
+    <button data-d="90">90 días</button>
+    <span class="range" id="rangeLbl"></span>
+  </div>
+
+  <div id="err"></div>
+
+  <div class="kpi-grid" id="kpis"></div>
+
+  <h2>Alcance e interacciones por día</h2>
+  <div class="two-col">
+    <div class="card"><div class="chart-container"><canvas id="reachChart"></canvas></div></div>
+    <div class="card"><div class="chart-container"><canvas id="interChart"></canvas></div></div>
+  </div>
+
+  <h2>Composición del engagement</h2>
+  <div class="card"><div class="chart-container"><canvas id="engChart"></canvas></div></div>
+
+  <script>
+    const API = window.location.origin + '/api/q/';
+    const daysAgo = n => { const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+    const today = () => daysAgo(0);
+    const fmtN = n => (Number(n)||0).toLocaleString('es-AR',{maximumFractionDigits:0});
+    const fmtDate = iso => { const [,m,d] = iso.slice(0,10).split('-'); return `${d}/${m}`; };
+
+    async function q(name, params={}) {
+      const r = await fetch(API + name + '?' + new URLSearchParams(params));
+      if (!r.ok) throw new Error(`${name}: ${r.status}`);
+      return r.json();
+    }
+
+    let reachChart, interChart, engChart;
+    const MUTED='#898781', GRID='#e8e4ee';
+
+    async function load(d) {
+      document.getElementById('err').textContent = '';
+      const from = daysAgo(Number(d)-1), to = today();
+      document.getElementById('rangeLbl').textContent = `${fmtDate(from)} → ${fmtDate(to)}`;
+      try {
+        const [resumenArr, diario, engArr] = await Promise.all([
+          q('instagram/resumen', { from, to }),
+          q('instagram/diario', { from, to }),
+          q('instagram/engagement', { from, to }),
+        ]);
+        renderKpis(resumenArr[0]||{});
+        renderDaily(diario);
+        renderEng(engArr[0]||{});
+      } catch (e) { document.getElementById('err').textContent = 'Error cargando datos: ' + e.message; }
+    }
+
+    function renderKpis(r) {
+      const cards = [
+        { l:'Seguidores', v:fmtN(r.seguidores), s:'total de la cuenta' },
+        { l:'Nuevos (rango)', v:fmtN(r.nuevos_seguidores), s:'altas netas' },
+        { l:'Alcance prom/día', v:fmtN(r.alcance_prom_dia), s:'personas únicas' },
+        { l:'Interacciones', v:fmtN(r.interacciones) },
+        { l:'Engagement rate', v:(Number(r.er_pct)||0).toFixed(1)+'%', s:'interac. ÷ alcance' },
+        { l:'Impresiones', v:fmtN(r.impresiones) },
+      ];
+      document.getElementById('kpis').innerHTML = cards.map(c =>
+        `<div class="kpi"><div class="v">${c.v}</div><div class="l">${c.l}</div>${c.s?`<div class="s">${c.s}</div>`:''}</div>`).join('');
+    }
+
+    function renderDaily(rows) {
+      const data = [...rows].sort((a,b)=> a.date.localeCompare(b.date));
+      const labels = data.map(r=>fmtDate(r.date));
+      if (reachChart) reachChart.destroy();
+      reachChart = new Chart(document.getElementById('reachChart'), {
+        type:'bar',
+        data:{ labels, datasets:[{ label:'Alcance', data:data.map(r=>Number(r.reach)||0), backgroundColor:'#774293', borderRadius:3, borderSkipped:false }] },
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ display:false }, title:{ display:true, text:'Alcance diario', color:'#52514e' }, tooltip:{ callbacks:{ label:c=>` ${fmtN(c.parsed.y)}` } } },
+          scales:{ x:{ grid:{ display:false }, ticks:{ color:MUTED, maxRotation:0, autoSkip:true, maxTicksLimit:12 } }, y:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:v=>fmtN(v) }, beginAtZero:true } } }
+      });
+      if (interChart) interChart.destroy();
+      interChart = new Chart(document.getElementById('interChart'), {
+        type:'line',
+        data:{ labels, datasets:[{ label:'Interacciones', data:data.map(r=>Number(r.total_interactions)||0), borderColor:'#1baf7a', backgroundColor:'#1baf7a', tension:.3, borderWidth:2, pointRadius:2, pointHoverRadius:5 }] },
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ display:false }, title:{ display:true, text:'Interacciones diarias', color:'#52514e' }, tooltip:{ callbacks:{ label:c=>` ${fmtN(c.parsed.y)}` } } },
+          scales:{ x:{ grid:{ display:false }, ticks:{ color:MUTED, maxRotation:0, autoSkip:true, maxTicksLimit:12 } }, y:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:v=>fmtN(v) }, beginAtZero:true } } }
+      });
+    }
+
+    function renderEng(r) {
+      const items = [['Likes', r.likes], ['Guardados', r.saves], ['Compartidos', r.shares], ['Comentarios', r.comments]]
+        .map(([l,v])=>[l, Number(v)||0]).sort((a,b)=>b[1]-a[1]);
+      if (engChart) engChart.destroy();
+      engChart = new Chart(document.getElementById('engChart'), {
+        type:'bar',
+        data:{ labels:items.map(i=>i[0]), datasets:[{ label:'Interacciones', data:items.map(i=>i[1]), backgroundColor:'#774293', borderRadius:4, borderSkipped:false }] },
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c=>` ${fmtN(c.parsed.x)}` } } },
+          scales:{ x:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:v=>fmtN(v) } }, y:{ grid:{ display:false }, ticks:{ color:'#52514e', font:{ weight:600 } } } } }
+      });
+    }
+
+    document.querySelectorAll('.period button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.period button').forEach(b=> b.classList.remove('active'));
+        btn.classList.add('active'); load(btn.dataset.d);
+      });
+    });
+    load('30');
+  </script>
+</body>
+</html>
