@@ -8,9 +8,8 @@ This project serves dashboards for the En Palabras team. Dashboards are static H
 
 Para los flujos más comunes hay slash commands en `.claude/commands/` que ya tienen el paso a paso. Cuando el pedido del usuario calce con uno de ellos, seguilo:
 
-- `/nuevo-dashboard` — crear un dashboard nuevo (HTML + registro)
+- `/nuevo-dashboard` — crear un dashboard nuevo (HTML + SQL co-locada + registro)
 - `/registrar-dashboard` — registrar en la base un HTML que ya existe
-- `/refrescar-vistas` — refrescar las materialized views
 
 ## Creating a Dashboard
 
@@ -71,27 +70,7 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 
 > ℹ️ `meta_updated_time` = última modificación del ad según Meta (`updated_time`); sirve para estimar pausas recientes (ej. "pausados últimos 7 días" = `effective_status LIKE '%PAUSED%' AND meta_updated_time >= now()-7d`). `preview_link` = `preview_shareable_link` de Meta, un link público para ver el anuncio sin entrar al Administrador. Ambos se pueblan en el batch (`storeAdEntities`). No hay historial de estado: es una foto que se sobrescribe cada corrida.
 
-**Vistas materializadas** (agregaciones de la tabla cruda — refrescar con `bun run db:refresh-views`):
-
-- `mv_meta_daily` — `date, spend, impressions, clicks, conversions, ctr, cpc`
-- `mv_meta_weekly` — `week, spend, impressions, clicks, conversions, ctr, cpc`
-- `mv_meta_by_campaign` — `campaign_id, campaign_name, total_spend, total_impressions, total_clicks, total_conversions, ctr, cpc, first_date, last_date`
-
-> ⚠️ Las vistas **no incluyen `reach` ni `cpm/cpp`**. Si los necesitás, hacé una query nombrada contra `meta_campaign_insights`.
-
-**Queries nombradas Meta ya disponibles** (`/api/q/<nombre>`):
-
-- `meta-total?window=last_28d` — KPIs del período (fetchMetaTotal): spend, reach, impressions, frequency, ctr, cpm, purchase_roas, omni_purchase. **Solo ventanas fijas** (`last_7d`/`last_28d`/`mtd`) — únicas con reach/frequency deduplicados por Meta.
-- `meta-account-range?from=&to=` — totales de cuenta sumados para un rango **arbitrario** (spend, impressions, omni_purchase/value, landing_page_view, add_to_cart, link_click + cpm, ctr ponderado, purchase_roas, cac, y `cvr` = compras ÷ landing_page_view × 100). **No trae reach/frequency** (Meta los deduplica solo por ventana). Usar esta para rangos a medida y comparaciones; `meta-total` solo para reach/freq en presets.
-- `meta-daily?from=&to=` — serie diaria de cuenta (incluye `landing_page_view` para CVR diario)
-- `meta-ads?from=&to=` — tabla de anuncios con `effective_status`, `preview_link`, CAC, CPM, `avg_frequency` (APROX), ATC→compra, engagement y mensajería
-- `meta-ad-counts` — conteos de inventario: total_ads, active_ads, paused_ads, new_7d (primer día de actividad en últ. 7d), paused_7d (real, vía `meta_updated_time`), stopped_7d (estimado por gasto, respaldo si `meta_updated_time` vacío)
-- `meta-campaigns` — id + nombre de campañas (fetchCampaigns)
-- `meta-engagement?from=&to=` — engagement + mensajería + funnel por día (nivel cuenta)
-- `meta-por-plataforma?from=&to=` — spend/compras/roas/CTR/CPM por plataforma y posición (IG vs FB, feed/stories/reels)
-- `campanas-por-reach?from=&to=` — reach/impresiones/spend por campaña
-
-> ℹ️ **CVR**: no tenemos datos de Tienda Nube. El "CVR" que usan los dashboards es un **proxy de Meta** = compras (`omni_purchase`) ÷ visitas a la web (`landing_page_view`). No es el CVR real de la tienda.
+> ℹ️ **No hay más `mv_meta_*` ni queries `meta-*` globales.** Las queries nombradas ahora viven **co-locadas por dashboard** en `dashboards/<slug>.sql` (ver "Named queries" abajo). Para KPIs de Meta, consultá las tablas de arriba directamente desde la `.sql` de tu dashboard.
 
 ## GA4 (Google Analytics)
 
@@ -108,13 +87,7 @@ Segunda fuente de datos, además de Meta. Mismo patrón: batch en `src/batch/ga4
 > ℹ️ Sanity check (últ. 28d): GA4 `purchase` ≈ 1.516 vs Meta `omni_purchase` ≈ 989 (GA4 ve todo el sitio, Meta solo lo atribuido → GA4 > Meta). AOV casi igual (~$52k), así que ambos miden compras reales. No es Tienda Nube: es lo que mide el tag de GA4.
 > ⚠️ El canal `Unassigned` puede traer `total_revenue` negativo (devoluciones/ajustes que GA4 no atribuye a un canal). Es esperado, no es un bug.
 
-**Queries nombradas GA4** (`/api/q/<nombre>`):
-
-- `ga4-traffic?from=&to=` — sesiones/usuarios/conversiones/revenue por canal (agregado del rango), con `engagement_rate_pct`.
-- `ga4-traffic-daily?from=&to=` — serie diaria de sesiones/usuarios/conversiones/revenue (todos los canales sumados).
-- `ga4-events?from=&to=` — eventos agregados por `event_name` en el rango.
-
-**Registry** `dashboards`: `slug (PK), title, author, description, file, created_at`
+**Registry** `analytics.dashboards`: `slug (PK), title, author, description, file, created_at` (lo llena `bun run dashboard:register`).
 
 ## Base de datos (una sola: `server_en_palabras`)
 
@@ -144,38 +117,21 @@ Todo el intake de analíticas vive en `src/batch/`, orquestado por `run.ts` (cad
 
 **Tablas útiles de `public`** (schema completo en `server_en_palabras/prisma/schema.prisma`): `Orders` (idEP, channel, status, total_amount, date_created, mail…), `OrdersItems` (product, quantity, total_product_amount), `OrdersPayments` (payment_method, payment_status, payment_received_amount), `OrdersShipping` (carrier, costos, zona), `gastos` (por categoría/área), `cmv_products` (CMV/COGS por producto/mes), `invoices` (facturación AFIP). Los nombres `PascalCase` y la columna `idEP` van **entre comillas** (`public."Orders"`, `o."idEP"`).
 
-**Dashboards ya armados sobre esta base** (queries co-locadas — ver `dashboards/<slug>.sql`):
+**Dashboards ya armados** (cada uno con su `dashboards/<slug>.html` + `<slug>.sql`):
 
-- **`ventas-reales`** (lee `public`): `/resumen`, `/por-canal`, `/diario`, `/por-pago`, `/top-productos` (todas `?from=&to=`).
-- **`conversion`** (lee `analytics`): `/funnel` (embudo checkout semanal), `/productos` (CVR vista→compra por producto) — `?from=&to=`.
+- **`ventas-reales`** (`public`): resumen, por-canal, diario, por-pago, top-productos.
+- **`conversion`** (`analytics`): funnel de checkout semanal + CVR vista→compra por producto.
+- **`instagram`** (`analytics`): cuenta/día + engagement + **top contenido** (posts por alcance).
+- **`negocio-360`** (`public`+`analytics`): panorama ejecutivo (ventas, resultado, gastos, ROI mkt, sesiones) **con comparador de período** (rango + período anterior/YoY + deltas).
+- **`paid-media`** (`analytics`): Meta Ads vs TikTok Ads, mismo comparador de período.
 
-Endpoints: `/api/q/ventas-reales/resumen`, `/api/q/conversion/funnel`, etc.
+> 💡 El comparador de `negocio-360`/`paid-media` (rango configurable + período anterior/YoY + deltas coloreados) es el **molde reutilizable** para dashboards nuevos que necesiten comparación.
 
 ## Available API Endpoints
 
 Base URL: the server origin (use `window.location.origin` in dashboards).
 
-### `GET /api/query/:viewName`
-
-Generic endpoint to query any materialized view. Parameters:
-- `from` (optional): Start date (YYYY-MM-DD)
-- `to` (optional): End date (YYYY-MM-DD)
-- `limit` (optional): Max rows to return
-
-Available views:
-- `mv_meta_daily` — columns: `date, spend, impressions, clicks, conversions, ctr, cpc`
-- `mv_meta_weekly` — columns: `week, spend, impressions, clicks, conversions, ctr, cpc`
-- `mv_meta_by_campaign` — columns: `campaign_id, campaign_name, total_spend, total_impressions, total_clicks, total_conversions, ctr, cpc, first_date, last_date`
-
-Example: `fetch('/api/query/mv_meta_daily?from=2026-01-01&to=2026-03-27')`
-
-### `GET /api/meta/daily`
-
-Daily Meta Ads metrics. Parameters: `from`, `to`. Returns rows sorted by date descending.
-
-### `GET /api/meta/campaigns`
-
-All campaigns sorted by total spend descending.
+> El endpoint principal es **`/api/q/:slug/:query`** (named queries co-locadas, abajo). Además hay algunos utilitarios:
 
 ### `GET /api/me`
 
@@ -183,7 +139,7 @@ Returns the logged-in user: `{ "id": "...", "email": "user@enpalabras.com.ar", "
 
 ### `GET /api/meta/config`
 
-Returns `{ "ad_account_id": "..." }` (el ID de cuenta de Meta del `.env`). Sirve para que los dashboards armen links al Administrador de anuncios: `https://adsmanager.facebook.com/adsmanager/manage/ads?act=<id>&selected_ad_ids=<ad_id>`. Para ver el anuncio sin login conviene usar `preview_link` (de `meta-ads`) en su lugar.
+Returns `{ "ad_account_id": "..." }` (el ID de cuenta de Meta del `.env`). Sirve para que los dashboards armen links al Administrador de anuncios: `https://adsmanager.facebook.com/adsmanager/manage/ads?act=<id>&selected_ad_ids=<ad_id>`. Para ver el anuncio sin login conviene usar `preview_link` (de `analytics.meta_ad_entities`) en su lugar.
 
 ### `GET /api/health`
 
@@ -232,24 +188,25 @@ The base stylesheet (`/assets/dashboard-base.css`) provides:
 
 ## Example Dashboard
 
-See `dashboards/example-meta-overview.html` for a complete reference.
+Referencias: `dashboards/ventas-reales.html` (simple, tablas + charts) y `dashboards/negocio-360.html` (con el comparador de período reutilizable). Cada uno con su `.sql` hermano.
 
 ## Tech Stack
 
 - Runtime: Bun
 - Server: Express (TypeScript)
-- Database: PostgreSQL with materialized views
+- Database: PostgreSQL (una sola: la de `server_en_palabras`)
 - Charts: Chart.js 4 (CDN)
-- Auth: Google OAuth (restricted to @enpalabras.com.ar)
-- Styling: Custom base CSS
+- Auth: Google OAuth (restringido a @enpalabras.com.ar)
+- Styling: Custom base CSS (`/assets/dashboard-base.css`)
 
 ## Commands
 
 ```bash
-bun run dev                 # Start dev server with hot reload
-bun run start               # Start production server
-bun run batch               # Fetch data from Meta Ads API
-bun run db:init             # Initialize database schema + views
-bun run db:refresh-views    # Refresh materialized views
-bun run dashboard:register  # Register a dashboard in the DB (slug title author description)
+bun run dev                 # Levantar server de desarrollo (hot reload)
+bun run start               # Server de producción
+bun run batch               # Traer datos de todas las fuentes (Meta, GA4, GA4-reports, IG, TikTok)
+bun run dashboard:register  # Registrar un dashboard en la DB (slug title author description)
+bun run query:check         # Probar una named query: query:check <slug>/<query> [from=.. to=..]
 ```
+
+> Backfill de Meta por meses (la API rechaza rangos largos): `bun run scripts/backfill-meta.ts [from] [to]`.

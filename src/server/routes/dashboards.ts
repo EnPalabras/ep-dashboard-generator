@@ -132,7 +132,7 @@ router.get("/d/:slug", async (req, res) => {
     return;
   }
 
-  const filePath = path.join(DASHBOARDS_DIR, rows[0].file);
+  const filePath = path.join(DASHBOARDS_DIR, rows[0]!.file);
   if (!existsSync(filePath)) {
     res.status(404).send("Dashboard file not found");
     return;

@@ -2,12 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(bun run dashboard:register *)",
-      "Bash(bun run db:refresh-views)",
+      "Bash(bun run query:check *)",
       "Bash(bun run dev)",
       "Bash(bun run start)",
       "Bash(bun install)",
       "Bash(git pull:*)",
-      "Bash(git status)",
+      "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git diff:*)",
       "Bash(git add:*)",
