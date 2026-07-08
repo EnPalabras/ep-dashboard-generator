@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paid Media · En Palabras</title>
+  <link rel="stylesheet" href="/assets/dashboard-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    :root { --ep:#774293; --ep-light:#BF75D8; --meta:#774293; --tk:#1baf7a; --muted:#898781; --grid:#e8e4ee; --good:#0f7a4e; --bad:#c0392b; }
+    h1 { color: var(--ep); margin-bottom:2px; }
+    .sub { color: var(--muted); font-size:.9rem; margin-bottom:14px; }
+    h2 { color: var(--ep); border-bottom:2px solid var(--ep-light); padding-bottom:6px; margin:26px 0 14px; font-size:1.15rem; }
+    .controls { display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin:14px 0 6px; }
+    .ctl-group { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .ctl-group .lbl { font-size:.7rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:700; margin-right:2px; }
+    .controls button { border:1px solid var(--ep); background:#fff; color:var(--ep); padding:6px 13px; border-radius:20px; cursor:pointer; font-size:.82rem; font-weight:600; }
+    .controls button.active { background:var(--ep); color:#fff; }
+    .controls input[type=date] { border:1px solid #d9cfe4; border-radius:8px; padding:5px 8px; font-size:.8rem; color:#52514e; }
+    .rangeLbl { color:var(--muted); font-size:.82rem; }
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:6px; }
+    .kpi { background:#F7F3FA; border-left:4px solid var(--ep); border-radius:10px; padding:14px 16px; }
+    .kpi.meta { border-left-color:var(--meta); } .kpi.tk { border-left-color:var(--tk); }
+    .kpi .v { font-size:1.5rem; font-weight:800; color:var(--ep); line-height:1.1; }
+    .kpi.tk .v { color:#0f7a53; }
+    .kpi .l { font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:#888; font-weight:600; margin-top:5px; }
+    .kpi .chip { display:inline-block; font-size:.72rem; font-weight:700; margin-top:6px; }
+    .kpi .chip.good { color:var(--good); } .kpi .chip.bad { color:var(--bad); } .kpi .chip.flat { color:var(--muted); }
+    .kpi .cmpval { font-size:.7rem; color:#a09aa8; margin-left:5px; }
+    .two-col { display:grid; grid-template-columns:3fr 2fr; gap:18px; }
+    @media (max-width:860px){ .two-col{ grid-template-columns:1fr; } }
+    .chart-container { height:320px; }
+    table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    th { background:var(--ep); color:#fff; text-align:left; padding:8px 10px; font-size:.68rem; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; }
+    td { padding:7px 10px; border-bottom:1px solid #ECE7F1; }
+    tr:nth-child(even) td { background:#FBF9FC; }
+    .num { text-align:right; font-variant-numeric:tabular-nums; }
+    .table-wrap { overflow-x:auto; }
+    .cmp-table td:first-child { font-weight:600; color:#52514e; }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+    .muted { color:var(--muted); font-size:.8rem; }
+    #err:empty { display:none; }
+    #err { background:#FDECEC; border:1px solid #F5C6C6; color:#B23B3B; border-radius:8px; padding:10px 14px; margin:10px 0; font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <nav class="back"><a href="/">← Todos los dashboards</a></nav>
+  <h1>Paid Media</h1>
+  <div class="sub"><span class="dot" style="background:var(--meta)"></span>Meta Ads &nbsp;·&nbsp; <span class="dot" style="background:var(--tk)"></span>TikTok Ads — inversión, alcance y performance, con comparación de período.</div>
+
+  <div class="controls">
+    <div class="ctl-group" id="rangeBtns">
+      <span class="lbl">Período</span>
+      <button data-r="mtd">Este mes</button>
+      <button data-r="lastmonth" class="active">Mes pasado</button>
+      <button data-r="30">30 días</button>
+      <button data-r="90">90 días</button>
+      <button data-r="ytd">Este año</button>
+    </div>
+    <div class="ctl-group"><input type="date" id="fromInp"><span class="muted">→</span><input type="date" id="toInp"></div>
+    <div class="ctl-group" id="cmpBtns">
+      <span class="lbl">Comparar vs</span>
+      <button data-c="none">Sin comparar</button>
+      <button data-c="prev" class="active">Período anterior</button>
+      <button data-c="yoy">Año anterior</button>
+    </div>
+  </div>
+  <div class="rangeLbl" id="rangeLbl"></div>
+  <div id="err"></div>
+
+  <h2>Resumen (Meta + TikTok)</h2>
+  <div class="kpi-grid" id="kpis"></div>
+
+  <h2>Inversión por día · Reparto</h2>
+  <div class="two-col">
+    <div class="card"><div class="chart-container"><canvas id="spendChart"></canvas></div></div>
+    <div class="card"><div class="chart-container"><canvas id="shareChart"></canvas></div></div>
+  </div>
+
+  <h2>Comparativa por plataforma</h2>
+  <div class="card"><div class="table-wrap">
+    <table class="cmp-table"><thead><tr><th>Métrica</th><th class="num">Meta</th><th class="num">TikTok</th></tr></thead><tbody id="platBody"></tbody></table>
+  </div></div>
+
+  <h2>Top campañas Meta · Top anuncios TikTok</h2>
+  <div class="two-col">
+    <div class="card"><div class="table-wrap">
+      <table id="metaTable"><thead><tr><th>Campaña</th><th class="num">Inversión</th><th class="num">Compras</th><th class="num">ROAS</th></tr></thead><tbody></tbody></table>
+    </div></div>
+    <div class="card"><div class="table-wrap">
+      <table id="tkTable"><thead><tr><th>Anuncio</th><th class="num">Inversión</th><th class="num">Clicks</th><th class="num">Conv.</th></tr></thead><tbody></tbody></table>
+    </div></div>
+  </div>
+
+  <p class="muted" style="margin-top:18px;">Meta: totales de cuenta (deduplicados). TikTok: report a nivel anuncio agregado. <b>ROAS/ingresos solo Meta</b> — la API de TikTok Ads no devuelve valor de compra, solo cantidad de conversiones. CTR/CPM/CPA calculados sobre clicks/impresiones/conversiones de cada plataforma.</p>
+
+  <script>
+    const API = window.location.origin + '/api/q/';
+    const toD=s=>new Date(s+'T00:00:00Z'), fmt=d=>d.toISOString().slice(0,10);
+    const addDays=(s,n)=>{const d=toD(s);d.setUTCDate(d.getUTCDate()+n);return fmt(d);};
+    const subYears=(s,n)=>{const d=toD(s);d.setUTCFullYear(d.getUTCFullYear()-n);return fmt(d);};
+    const diffDays=(a,b)=>Math.round((toD(b)-toD(a))/864e5);
+    const todayStr=()=>fmt(new Date());
+    const fmtD=iso=>{const [,m,d]=iso.slice(0,10).split('-');return `${d}/${m}`;};
+    const money=n=>{n=Number(n)||0; if(n>=1e6)return '$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:2})+'M'; if(n>=1e3)return '$'+(n/1e3).toLocaleString('es-AR',{maximumFractionDigits:1})+'k'; return '$'+n.toLocaleString('es-AR',{maximumFractionDigits:0});};
+    const fmtN=n=>(Number(n)||0).toLocaleString('es-AR',{maximumFractionDigits:0});
+    async function q(name,p={}){ const r=await fetch(API+name+'?'+new URLSearchParams(p)); if(!r.ok) throw new Error(`${name}: ${r.status}`); return r.json(); }
+
+    const state={ r:'lastmonth', from:null, to:null, c:'prev' };
+    let spendChart, shareChart;
+    const MUTED='#898781', GRID='#e8e4ee';
+
+    function currentRange(){ const t=todayStr();
+      if(state.r==='custom') return {from:state.from,to:state.to};
+      if(state.r==='mtd') return {from:t.slice(0,8)+'01',to:t};
+      if(state.r==='lastmonth'){ const d=toD(t.slice(0,8)+'01'); const to=addDays(fmt(d),-1); return {from:to.slice(0,8)+'01',to}; }
+      if(state.r==='ytd') return {from:t.slice(0,4)+'-01-01',to:t};
+      return {from:addDays(t,-(Number(state.r)-1)),to:t}; }
+    function cmpRange(cur){ if(state.c==='none')return null;
+      if(state.c==='yoy') return {from:subYears(cur.from,1),to:subYears(cur.to,1)};
+      const L=diffDays(cur.from,cur.to)+1, to=addDays(cur.from,-1); return {from:addDays(to,-(L-1)),to}; }
+
+    function derive(r){
+      const ms=+r.meta_spend||0, ts=+r.tk_spend||0, mi=+r.meta_impr||0, ti=+r.tk_impr||0;
+      const mc=+r.meta_clicks||0, tc=+r.tk_clicks||0, mv=+r.meta_conv||0, tv=+r.tk_conv||0, mrev=+r.meta_rev||0;
+      const spend=ms+ts, impr=mi+ti, clicks=mc+tc, conv=mv+tv;
+      return { spend, meta_spend:ms, tk_spend:ts, impr, clicks, conv,
+        ctr: impr>0?clicks/impr*100:0, cpa: conv>0?spend/conv:0, roas: ms>0?mrev/ms:0,
+        meta:{spend:ms,impr:mi,clicks:mc,conv:mv,rev:mrev,ctr:mi>0?mc/mi*100:0,cpm:mi>0?ms/mi*1000:0,cpa:mv>0?ms/mv:0,roas:ms>0?mrev/ms:0},
+        tk:{spend:ts,impr:ti,clicks:tc,conv:tv,ctr:ti>0?tc/ti*100:0,cpm:ti>0?ts/ti*1000:0,cpa:tv>0?ts/tv:0} }; }
+    function chip(cur,prev,goodUp){ if(prev==null||prev===0)return '';
+      const pct=(cur-prev)/Math.abs(prev)*100, up=pct>=0;
+      const cls=goodUp===null?'flat':(Math.abs(pct)<0.05?'flat':((up===goodUp)?'good':'bad'));
+      const ar=Math.abs(pct)<0.05?'→':(up?'▲':'▼'); return `<div class="chip ${cls}">${ar} ${Math.abs(pct).toFixed(1)}%</div>`; }
+
+    async function load(){
+      document.getElementById('err').textContent='';
+      const cur=currentRange(); if(!cur.from||!cur.to)return;
+      const cmp=cmpRange(cur);
+      document.getElementById('fromInp').value=cur.from; document.getElementById('toInp').value=cur.to;
+      document.getElementById('rangeLbl').innerHTML=`${fmtD(cur.from)} → ${fmtD(cur.to)}`+(cmp?` <span class="muted">vs ${fmtD(cmp.from)} → ${fmtD(cmp.to)}</span>`:'');
+      try{
+        const [resA,dia,metaC,tkA]=await Promise.all([
+          q('paid-media/resumen',cur), q('paid-media/diario',cur),
+          q('paid-media/meta-campanas',cur), q('paid-media/tiktok-ads',cur) ]);
+        const resB=cmp?(await q('paid-media/resumen',cmp))[0]:null;
+        renderKpis(resA[0]||{},resB); renderSpend(dia); renderShare(resA[0]||{});
+        renderMeta(metaC); renderTk(tkA);
+      }catch(e){ document.getElementById('err').textContent='Error cargando datos: '+e.message; }
+    }
+
+    function renderKpis(a,b){
+      const A=derive(a), B=b?derive(b):null;
+      const cards=[
+        {l:'Inversión total',v:money(A.spend),k:o=>o.spend,good:null,f:money},
+        {l:'Inversión Meta',v:money(A.meta_spend),k:o=>o.meta_spend,good:null,f:money,cls:'meta'},
+        {l:'Inversión TikTok',v:money(A.tk_spend),k:o=>o.tk_spend,good:null,f:money,cls:'tk'},
+        {l:'Impresiones',v:fmtN(A.impr),k:o=>o.impr,good:null,f:fmtN},
+        {l:'Clicks',v:fmtN(A.clicks),k:o=>o.clicks,good:true,f:fmtN},
+        {l:'CTR',v:A.ctr.toFixed(2)+'%',k:o=>o.ctr,good:true,f:x=>x.toFixed(2)+'%'},
+        {l:'Conversiones',v:fmtN(A.conv),k:o=>o.conv,good:true,f:fmtN},
+        {l:'CPA',v:money(A.cpa),k:o=>o.cpa,good:false,f:money},
+        {l:'ROAS Meta',v:A.roas.toFixed(2)+'x',k:o=>o.roas,good:true,f:x=>x.toFixed(2)+'x'},
+      ];
+      document.getElementById('kpis').innerHTML=cards.map(c=>{
+        const cmpHtml=B?chip(c.k(A),c.k(B),c.good)+`<span class="cmpval">${c.f(c.k(B))}</span>`:'';
+        return `<div class="kpi ${c.cls||''}"><div class="v">${c.v}</div><div class="l">${c.l}</div>${cmpHtml}</div>`;
+      }).join('');
+      renderPlat(A);
+    }
+
+    function renderSpend(rows){
+      const d=[...rows].sort((a,b)=>a.date.localeCompare(b.date)); const labels=d.map(r=>fmtD(r.date));
+      if(spendChart)spendChart.destroy();
+      spendChart=new Chart(document.getElementById('spendChart'),{
+        type:'line', data:{labels,datasets:[
+          {label:'Meta',data:d.map(r=>+r.meta_spend||0),borderColor:'#774293',backgroundColor:'rgba(119,66,147,.06)',fill:true,tension:.3,borderWidth:2,pointRadius:0,pointHoverRadius:5},
+          {label:'TikTok',data:d.map(r=>+r.tk_spend||0),borderColor:'#1baf7a',backgroundColor:'rgba(27,175,122,.06)',fill:true,tension:.3,borderWidth:2,pointRadius:0,pointHoverRadius:5} ]},
+        options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+          plugins:{legend:{position:'top',labels:{usePointStyle:true,color:'#52514e'}},title:{display:true,text:'Inversión diaria',color:'#52514e'},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${money(c.parsed.y)}`}}},
+          scales:{x:{grid:{display:false},ticks:{color:MUTED,maxRotation:0,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:GRID},ticks:{color:MUTED,callback:v=>money(v)},beginAtZero:true}}}
+      });
+    }
+    function renderShare(r){
+      const ms=+r.meta_spend||0, ts=+r.tk_spend||0;
+      if(shareChart)shareChart.destroy();
+      shareChart=new Chart(document.getElementById('shareChart'),{
+        type:'doughnut', data:{labels:['Meta','TikTok'],datasets:[{data:[ms,ts],backgroundColor:['#774293','#1baf7a'],borderWidth:2,borderColor:'#fff'}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+          plugins:{legend:{position:'bottom',labels:{usePointStyle:true,color:'#52514e'}},title:{display:true,text:'Reparto de inversión',color:'#52514e'},
+            tooltip:{callbacks:{label:c=>` ${c.label}: ${money(c.parsed)} (${(c.parsed/(ms+ts)*100||0).toFixed(1)}%)`}}}}
+      });
+    }
+    function renderPlat(A){
+      const rows=[
+        ['Inversión',money(A.meta.spend),money(A.tk.spend)],
+        ['Impresiones',fmtN(A.meta.impr),fmtN(A.tk.impr)],
+        ['Clicks',fmtN(A.meta.clicks),fmtN(A.tk.clicks)],
+        ['CTR',A.meta.ctr.toFixed(2)+'%',A.tk.ctr.toFixed(2)+'%'],
+        ['CPM',money(A.meta.cpm),money(A.tk.cpm)],
+        ['Conversiones',fmtN(A.meta.conv),fmtN(A.tk.conv)],
+        ['CPA',money(A.meta.cpa),money(A.tk.cpa)],
+        ['ROAS',A.meta.roas.toFixed(2)+'x','—'],
+      ];
+      document.getElementById('platBody').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td></tr>`).join('');
+    }
+    function renderMeta(rows){ document.querySelector('#metaTable tbody').innerHTML=rows.map(r=>
+      `<tr><td>${r.campaign_name||'—'}</td><td class="num">${money(r.spend)}</td><td class="num">${fmtN(r.compras)}</td><td class="num">${(Number(r.roas)||0).toFixed(2)}x</td></tr>`).join(''); }
+    function renderTk(rows){ document.querySelector('#tkTable tbody').innerHTML=rows.map(r=>
+      `<tr><td>${r.ad_name||'—'}</td><td class="num">${money(r.spend)}</td><td class="num">${fmtN(r.clicks)}</td><td class="num">${fmtN(r.conversiones)}</td></tr>`).join(''); }
+
+    document.querySelectorAll('#rangeBtns button').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('#rangeBtns button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.r=b.dataset.r; load(); }));
+    document.querySelectorAll('#cmpBtns button').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('#cmpBtns button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.c=b.dataset.c; load(); }));
+    function onCustom(){ const f=document.getElementById('fromInp').value,t=document.getElementById('toInp').value;
+      if(f&&t&&f<=t){ state.r='custom'; state.from=f; state.to=t; document.querySelectorAll('#rangeBtns button').forEach(x=>x.classList.remove('active')); load(); } }
+    document.getElementById('fromInp').addEventListener('change',onCustom);
+    document.getElementById('toInp').addEventListener('change',onCustom);
+    load();
+  </script>
+</body>
+</html>
