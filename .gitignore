@@ -32,3 +32,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Reportes exportados de referencia (Windsor/Metabase), no son parte de la app
+/reporte*.html
