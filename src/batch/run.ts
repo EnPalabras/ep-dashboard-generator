@@ -3,6 +3,7 @@ import { fetchAndStoreMetaData } from "./meta/fetch.ts";
 import { fetchAndStoreGA4Data } from "./ga4/fetch.ts";
 import { fetchAndStoreGA4Reports } from "./ga4-reports/fetch.ts";
 import { fetchAndStoreInstagram } from "./instagram/fetch.ts";
+import { fetchAndStoreTikTok } from "./tiktok/fetch.ts";
 import pool from "../server/db/pool.ts";
 
 // Uso:
@@ -36,6 +37,7 @@ async function main() {
   // Ingest propio (rico) → tablas nuestras en analytics (ep_analytics las posee).
   await step("meta (rich)", () => fetchAndStoreMetaData(opts));
   await step("ga4 daily (rich)", () => fetchAndStoreGA4Data(opts));
+  await step("tiktok ads", () => fetchAndStoreTikTok(opts));
 
   // Ingest portado de server_en_palabras → tablas existentes de analytics (necesita write grant).
   await step("ga4 reports (sessions/events/funnel/product)", () => fetchAndStoreGA4Reports());
