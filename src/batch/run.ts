@@ -3,6 +3,7 @@ import { fetchAndStoreMetaData } from "./meta/fetch.ts";
 import { fetchAndStoreGA4Data } from "./ga4/fetch.ts";
 import { fetchAndStoreGA4Reports } from "./ga4-reports/fetch.ts";
 import { fetchAndStoreInstagram } from "./instagram/fetch.ts";
+import { fetchAndStoreInstagramPosts } from "./instagram/posts.ts";
 import { fetchAndStoreTikTok } from "./tiktok/fetch.ts";
 import pool from "../server/db/pool.ts";
 
@@ -42,6 +43,7 @@ async function main() {
   // Ingest portado de server_en_palabras → tablas existentes de analytics (necesita write grant).
   await step("ga4 reports (sessions/events/funnel/product)", () => fetchAndStoreGA4Reports());
   await step("instagram", () => fetchAndStoreInstagram(opts.lookbackDays ?? 10));
+  await step("instagram posts", () => fetchAndStoreInstagramPosts(opts));
 
   console.log("[batch] done");
   await pool.end();

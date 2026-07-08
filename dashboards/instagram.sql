@@ -32,3 +32,14 @@ SELECT
   COALESCE(sum(comments), 0)::int AS comments
 FROM analytics.instagram_by_day
 WHERE date BETWEEN :from AND :to;
+
+-- @query posts
+-- Contenido a nivel post (reels/carruseles) publicado en el rango, rankeado por alcance.
+SELECT
+  date, media_type, caption, permalink,
+  reach, views, likes, comments, saved, shares,
+  CASE WHEN reach > 0 THEN round(total_interactions::numeric / reach * 100, 2) ELSE 0 END AS er
+FROM analytics.instagram_posts
+WHERE date BETWEEN :from AND :to
+ORDER BY reach DESC
+LIMIT 30;
