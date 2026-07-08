@@ -130,6 +130,7 @@ Todo el intake de analíticas vive en `src/batch/`, orquestado por `run.ts` (cad
 - **`ga4/`** (rico, nuestro) → `analytics.ga4_traffic_daily`, `ga4_events_daily`. Env: `GA_*`. **Tablas nuestras.**
 - **`ga4-reports/`** (portado de server_en_palabras) → tablas **existentes** `sessions_per_month`, `events_per_month_page`, `users_cr_by_product`, `checkout_dropoff_funnel`. Usa `runReport` + `runFunnelReport` (v1alpha). **Necesita `INSERT/UPDATE` en esas tablas.**
 - **`instagram/`** (portado) → tabla **existente** `instagram_by_day`. Env: `META_INSTAGRAM_ACCOUNT_ID` + `META_ACCESS_TOKEN` (token con permisos `instagram_*`). **Necesita `INSERT/UPDATE`.**
+- **`tiktok/`** (rico, nuestro) → `analytics.tiktok_ads_daily` (anuncio × día: spend, impresiones, clicks, ctr/cpc/cpm, conversiones, reach, likes/comments/shares/profile_visits). Business API v1.3 `report/integrated/get` (fetch plano, sin SDK). Env: `TIKTOK_ACCESS_TOKEN`, `TIKTOK_ADVERTISER_ID`. **Tabla nuestra — sin grant.** Datos desde 2025-08 (inicio de la cuenta).
 
 > ⚠️ **Grant pendiente** para que el batch alimente las tablas existentes de Metabase (correr como `postgres`):
 > ```sql
