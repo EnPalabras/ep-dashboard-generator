@@ -23,17 +23,19 @@ De ahí derivás un **slug** corto en kebab-case (ej: `gasto-semanal-meta`).
    - Las queries van **co-locadas** en `dashboards/<slug>.sql`; el HTML las llama vía `/api/q/<slug>/<query>`.
    - **Antes de escribir gráficos, cargá el skill `dataviz`.** Paleta de la casa: violeta EP `#774293`.
 
-2. **Decile al usuario**: "Ahora lo registro con `bun run dashboard:register <slug> "<title>" "<author>" "<description>"`."
+2. **Verificá cada query** con `bun run query:check <slug>/<query> [from=.. to=..]` (read-only, no pide permisos). Confirmá que devuelven filas antes de seguir. Si una falla, corregí la `.sql`.
+
+3. **Decile al usuario**: "Ahora lo registro con `bun run dashboard:register <slug> "<title>" "<author>" "<description>"`."
    - Ejecutá ese comando (INSERT/UPDATE en `analytics.dashboards`). **No hagas SQL crudo a mano.**
 
-3. **Decile al usuario**: "Voy a commitear y pushear los archivos nuevos al repo."
+4. **Decile al usuario**: "Voy a commitear y pushear los archivos nuevos al repo."
    - Corré `git status` para confirmar qué se modificó.
    - Stageá **sólo** los archivos del dashboard (`dashboards/<slug>.html` y `dashboards/<slug>.sql`). Nada de `git add -A`.
    - Commiteá con un mensaje corto tipo `feat(dashboard): <slug> — <descripción de una línea>`.
    - Pusheá a `main` con `git push`.
    - Si el push falla, mostrale el error al usuario y paralo ahí — no intentes fix con `--force`.
 
-4. **Decile al usuario**: "Listo. Levantá el server con `bun run dev` y abrí http://localhost:3000 para verlo."
+5. **Decile al usuario**: "Listo. Levantá el server con `bun run dev` y abrí http://localhost:3000 para verlo."
    - Si el server ya está corriendo, recordale solamente que refresque.
 
 ## Reglas
