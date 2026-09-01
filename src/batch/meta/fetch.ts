@@ -42,7 +42,16 @@ export async function fetchAndStoreMetaData(opts: FetchOptions = {}) {
   const dateTo = opts.to ?? daysAgo(0);
   const dateFrom = opts.from ?? daysAgo(opts.lookbackDays ?? 3);
 
-  await storeAdInsights(adAccountId, accessToken, dateFrom, dateTo);
+  // Las tablas tienen `id SERIAL` + UNIQUE(...): si la secuencia queda atrasada
+  // respecto de max(id) (restore/copia de datos con ids explícitos), TODO insert de
+  // fila nueva revienta con duplicate key en el pkey. La resincronizamos antes de insertar.
+  await syncSerialSequences(["meta_campaign_insights", "meta_platform_insights"]);
+
+  try {
+    await storeAdInsights(adAccountId, accessToken, dateFrom, dateTo);
+  } catch (err: any) {
+    console.error("[meta] ad insights failed:", err.message);
+  }
 
   try {
     await storePlatformInsights(adAccountId, accessToken, dateFrom, dateTo);
@@ -66,6 +75,21 @@ export async function fetchAndStoreMetaData(opts: FetchOptions = {}) {
     await storeAccountTotals(adAccountId, accessToken);
   } catch (err: any) {
     console.error("[meta] account totals failed:", err.message);
+  }
+}
+
+/** Pone cada secuencia de `id` en max(id), para que nextval no choque con filas existentes. */
+async function syncSerialSequences(tables: string[]) {
+  for (const t of tables) {
+    try {
+      await pool.query(
+        `SELECT setval(pg_get_serial_sequence($1, 'id'),
+                       (SELECT coalesce(max(id), 1) FROM ${t}))`,
+        [t]
+      );
+    } catch (err: any) {
+      console.error(`[meta] no pude sincronizar la secuencia de ${t}:`, err.message);
+    }
   }
 }
 
