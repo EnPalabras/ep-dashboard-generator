@@ -17,6 +17,13 @@
     .period button.active { background:var(--ep); color:#fff; }
     .period .range { color:var(--muted); font-size:.82rem; margin-left:auto; }
 
+    .gran { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:0 0 12px; }
+    .gran .lbl { font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:#888; font-weight:600; margin-right:4px; }
+    .gran button { border:1px solid var(--grid); background:#fff; color:#6a6a6a; padding:5px 13px; border-radius:6px; cursor:pointer; font-size:.8rem; font-weight:600; }
+    .gran button:hover { border-color:var(--ep-light); color:var(--ep); }
+    .gran button.active { background:#F1E9F6; border-color:var(--ep); color:var(--ep); }
+    .gran .note { color:var(--muted); font-size:.78rem; margin-left:auto; }
+
     .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:6px; }
     .kpi { background:#F7F3FA; border-left:4px solid var(--ep); border-radius:10px; padding:15px 17px; }
     .kpi .v { font-size:1.6rem; font-weight:800; color:var(--ep); line-height:1.05; }
@@ -56,16 +63,18 @@
   <h2>Resumen del período</h2>
   <div class="kpi-grid" id="kpis"></div>
 
-  <h2>Gasto por día</h2>
-  <div class="card"><div class="chart-container"><canvas id="dailyChart"></canvas></div></div>
-
-  <h2>Gasto por mes</h2>
-  <div class="two-col">
-    <div class="card"><div class="chart-container"><canvas id="monthChart"></canvas></div></div>
-    <div class="card"><div class="table-wrap">
-      <table id="monthTable"><thead><tr><th>Mes</th><th class="num">Gasto</th><th class="num">Días</th><th class="num">Gasto/día</th><th class="num">Compras</th><th class="num">ROAS</th></tr></thead><tbody></tbody></table>
-    </div></div>
+  <h2>Evolución del gasto</h2>
+  <div class="gran">
+    <span class="lbl">Agrupar por</span>
+    <button data-g="dia">Día</button>
+    <button data-g="semana" class="active">Semana</button>
+    <button data-g="mes">Mes</button>
+    <span class="note" id="granNote"></span>
   </div>
+  <div class="card"><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
+  <div class="card" style="margin-top:18px;"><div class="table-wrap">
+    <table id="trendTable"><thead><tr><th id="trendCol">Semana</th><th class="num">Gasto</th><th class="num">% del total</th><th class="num">Días</th><th class="num">Gasto/día</th><th class="num">Compras</th><th class="num">ROAS</th></tr></thead><tbody></tbody></table>
+  </div></div>
 
   <h2>Gasto por plataforma</h2>
   <div class="two-col">
@@ -80,7 +89,7 @@
     <table id="campTable"><thead><tr><th>Campaña</th><th class="num">Gasto</th><th class="num">% del total</th><th class="num">Impresiones</th><th class="num">Clicks</th><th class="num">Compras</th><th class="num">ROAS</th></tr></thead><tbody></tbody></table>
   </div></div>
 
-  <p class="muted" style="margin-top:20px;">Fuente: <code>analytics.meta_account_daily</code> (gasto total, CPM y CPC del período), <code>analytics.meta_campaign_insights</code> (por campaña, top 20) y <code>analytics.meta_platform_insights</code> (por plataforma). El gasto por campaña/plataforma puede diferir levemente del total de cuenta por diferencias de atribución de Meta. ROAS = valor de compras omni ÷ gasto.</p>
+  <p class="muted" style="margin-top:20px;">Fuente: <code>analytics.meta_account_daily</code> (resumen y evolución), <code>analytics.meta_campaign_insights</code> (por campaña, top 20) y <code>analytics.meta_platform_insights</code> (por plataforma). Los tres cortes de la evolución (día, semana y mes) se calculan sobre la misma serie diaria, así que siempre suman lo mismo; las semanas arrancan el <b>lunes</b>. Una fila marcada <i>(parcial)</i> no cubre la semana o el mes completo — no la compares de igual a igual con una entera. El gasto por campaña/plataforma puede diferir levemente del total de cuenta por diferencias de atribución de Meta. ROAS = valor de compras omni ÷ gasto.</p>
 
   <script>
     const API = window.location.origin + '/api/q/';
@@ -109,8 +118,11 @@
       return r.json();
     }
 
-    let dailyChart, monthChart, platChart;
+    let trendChart, platChart;
+    let dailyRows = [];        // última serie diaria cargada (se reagrupa sin refetch)
+    let gran = 'semana';       // 'dia' | 'semana' | 'mes'
     const EP = '#774293', MUTED = '#898781', GRID = '#e8e4ee';
+    const GRAN_LABEL = { dia:'Día', semana:'Semana', mes:'Mes' };
 
     function rangeFor(d) {
       if (d === 'mtd')  return { from: firstOfMonth(0), to: today() };
@@ -126,15 +138,14 @@
         const res = await Promise.all([
           q('gasto-meta/resumen',        { from: from, to: to }),
           q('gasto-meta/diario',         { from: from, to: to }),
-          q('gasto-meta/por-mes',        { from: from, to: to }),
           q('gasto-meta/por-plataforma', { from: from, to: to }),
           q('gasto-meta/por-campana',    { from: from, to: to }),
         ]);
         renderKpis(res[0][0] || {});
-        renderDaily(res[1]);
-        renderMonths(res[2]);
-        renderPlatforms(res[3]);
-        renderCampaigns(res[4]);
+        dailyRows = res[1];
+        renderTrend();
+        renderPlatforms(res[2]);
+        renderCampaigns(res[3]);
       } catch (e) {
         document.getElementById('err').textContent = 'Error cargando datos: ' + e.message;
       }
@@ -155,48 +166,113 @@
       ).join('');
     }
 
-    function renderDaily(rows) {
-      const data = rows.slice().sort((a,b)=> a.fecha.localeCompare(b.fecha));
-      if (dailyChart) dailyChart.destroy();
-      dailyChart = new Chart(document.getElementById('dailyChart'), {
+    // --- Agrupación de la serie diaria en día / semana / mes -----------------
+    // Las semanas arrancan lunes. Se opera sobre el string ISO en UTC para que el
+    // huso horario no corra los días. `dias` cuenta solo los días que Meta reportó,
+    // así un bucket parcial (la semana en curso) se ve como tal.
+    const dayNum = iso => new Date(iso.slice(0,10) + 'T00:00:00Z');
+    const isoOf  = d => d.toISOString().slice(0,10);
+
+    function bucketKey(iso, g) {
+      const day = iso.slice(0,10);
+      if (g === 'dia') return day;
+      if (g === 'mes') return day.slice(0,7) + '-01';
+      const d = dayNum(day);
+      d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); // lunes de esa semana
+      return isoOf(d);
+    }
+
+    function groupDaily(rows, g) {
+      const map = new Map();
+      rows.slice().sort((a,b)=> a.fecha.localeCompare(b.fecha)).forEach(function(r){
+        const k = bucketKey(r.fecha, g);
+        let b = map.get(k);
+        if (!b) { b = { key:k, first:r.fecha.slice(0,10), last:r.fecha.slice(0,10), spend:0, compras:0, valor:0, dias:0 }; map.set(k, b); }
+        b.last = r.fecha.slice(0,10);
+        b.spend   += Number(r.spend)||0;
+        b.compras += Number(r.compras)||0;
+        b.valor   += Number(r.valor)||0;
+        if (r.con_datos) b.dias += 1;
+      });
+      const all = Array.from(map.values()).sort(function(a,b){ return a.key.localeCompare(b.key); });
+      // Recorta los buckets del borde sin ningún día reportado (relleno del rango:
+      // típicamente la semana en curso que Meta todavía no cargó). Un cero al final
+      // se leería como una caída del gasto. Los huecos internos se conservan: ahí
+      // un cero sí quiere decir que no se gastó.
+      let i = 0, j = all.length - 1;
+      while (i <= j && all[i].dias === 0) i++;
+      while (j >= i && all[j].dias === 0) j--;
+      return all.slice(i, j + 1);
+    }
+
+    // Etiqueta corta para el eje; el rango completo va en el tooltip y en la tabla.
+    function bucketAxis(b, g) { return g === 'mes' ? fmtMes(b.key) : fmtDate(b.first); }
+    function bucketFull(b, g) {
+      if (g === 'dia') return fmtDate(b.first);
+      if (g === 'mes') return fmtMes(b.key);
+      return fmtDate(b.first) + ' → ' + fmtDate(b.last);
+    }
+
+    function renderTrend() {
+      const g = gran;
+      const data = groupDaily(dailyRows, g);
+      const total = data.reduce(function(s,b){ return s + b.spend; }, 0);
+
+      document.getElementById('trendCol').textContent = GRAN_LABEL[g];
+      document.getElementById('granNote').textContent = data.length
+        ? data.length + ' ' + (g === 'dia' ? 'días' : g === 'semana' ? 'semanas' : 'meses') + ' · total ' + fmtMoneyFull(total)
+        : '';
+
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart(document.getElementById('trendChart'), {
         type:'bar',
-        data:{ labels:data.map(r=> fmtDate(r.fecha)),
-               datasets:[{ label:'Gasto', data:data.map(r=>Number(r.spend)||0), backgroundColor:EP, borderRadius:3, borderSkipped:false }] },
+        data:{ labels:data.map(function(b){ return bucketAxis(b, g); }),
+               datasets:[{ label:'Gasto', data:data.map(function(b){ return b.spend; }),
+                           backgroundColor:EP, borderRadius: g === 'dia' ? 3 : 4, borderSkipped:false,
+                           maxBarThickness: g === 'mes' ? 70 : g === 'semana' ? 46 : 22 }] },
         options:{
           responsive:true, maintainAspectRatio:false,
           interaction:{ mode:'index', intersect:false },
-          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c=> ' ' + fmtMoneyFull(c.parsed.y) } } },
-          scales:{ x:{ grid:{ display:false }, ticks:{ color:MUTED, maxRotation:0, autoSkip:true, maxTicksLimit:14 } },
-                   y:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:v=>fmtMoney(v) }, beginAtZero:true } }
+          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{
+            title: function(items){ const b = data[items[0].dataIndex]; return (g === 'dia' ? '' : GRAN_LABEL[g] + ' ') + bucketFull(b, g); },
+            label: function(c){ return ' ' + fmtMoneyFull(c.parsed.y) + ' (' + pct(c.parsed.y, total) + ')'; },
+            afterLabel: function(c){ const b = data[c.dataIndex];
+              return b.dias ? b.compras + ' compras · ROAS ' + fmtRoas(b.spend ? b.valor/b.spend : 0) + ' · ' + b.dias + ' día' + (b.dias===1?'':'s') + ' con datos' : 'sin datos'; }
+          } } },
+          scales:{ x:{ grid:{ display:false }, ticks:{ color: g === 'dia' ? MUTED : '#52514e', font: g === 'dia' ? {} : { weight:600 }, maxRotation:0, autoSkip:true, maxTicksLimit: g === 'dia' ? 14 : 20 } },
+                   y:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:function(v){ return fmtMoney(v); } }, beginAtZero:true } }
         }
       });
+
+      const body = data.map(function(b){
+        const parcial = b.dias < diasCalendario(b, g);
+        return '<tr><td>' + bucketFull(b, g) + (parcial ? ' <span class="muted">(parcial)</span>' : '') + '</td>'
+             + '<td class="num">' + fmtMoneyFull(b.spend) + '</td>'
+             + '<td class="num">' + pct(b.spend, total) + '</td>'
+             + '<td class="num">' + fmtN(b.dias) + '</td>'
+             + '<td class="num">' + (b.dias ? fmtMoneyFull(b.spend/b.dias) : '—') + '</td>'
+             + '<td class="num">' + fmtN(b.compras) + '</td>'
+             + '<td class="num">' + fmtRoas(b.spend ? b.valor/b.spend : 0) + '</td></tr>';
+      }).join('');
+      const tc = data.reduce(function(s,b){ return s + b.compras; }, 0);
+      const tv = data.reduce(function(s,b){ return s + b.valor; }, 0);
+      const td = data.reduce(function(s,b){ return s + b.dias; }, 0);
+      const foot = data.length
+        ? '<tr><td><b>Total</b></td><td class="num"><b>' + fmtMoneyFull(total) + '</b></td><td class="num">100%</td>'
+          + '<td class="num">' + fmtN(td) + '</td><td class="num">' + (td ? fmtMoneyFull(total/td) : '—') + '</td>'
+          + '<td class="num">' + fmtN(tc) + '</td><td class="num">' + fmtRoas(total ? tv/total : 0) + '</td></tr>'
+        : '<tr><td colspan="7" class="muted">Sin datos en el período.</td></tr>';
+      document.querySelector('#trendTable tbody').innerHTML = body + foot;
     }
 
-    function renderMonths(rows) {
-      const data = rows.slice().sort((a,b)=> a.mes.localeCompare(b.mes));
-      if (monthChart) monthChart.destroy();
-      monthChart = new Chart(document.getElementById('monthChart'), {
-        type:'bar',
-        data:{ labels:data.map(r=> fmtMes(r.mes)),
-               datasets:[{ label:'Gasto', data:data.map(r=>Number(r.spend)||0), backgroundColor:EP, borderRadius:4, borderSkipped:false, maxBarThickness:70 }] },
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c=> ' ' + fmtMoneyFull(c.parsed.y) } } },
-          scales:{ x:{ grid:{ display:false }, ticks:{ color:'#52514e', font:{ weight:600 } } },
-                   y:{ grid:{ color:GRID }, ticks:{ color:MUTED, callback:v=>fmtMoney(v) }, beginAtZero:true } }
-        }
-      });
-      const total = data.reduce((s,r)=> s + (Number(r.spend)||0), 0);
-      const body = data.map(r=>{
-        const sp = Number(r.spend)||0, dias = Number(r.dias)||0;
-        return '<tr><td>' + fmtMes(r.mes) + '</td><td class="num">' + fmtMoneyFull(sp) + '</td>'
-             + '<td class="num">' + fmtN(dias) + '</td>'
-             + '<td class="num">' + (dias ? fmtMoneyFull(sp/dias) : '—') + '</td>'
-             + '<td class="num">' + fmtN(r.compras) + '</td>'
-             + '<td class="num">' + fmtRoas(r.roas) + '</td></tr>';
-      }).join('');
-      const foot = data.length ? '<tr><td><b>Total</b></td><td class="num"><b>' + fmtMoneyFull(total) + '</b></td><td colspan="4"></td></tr>' : '';
-      document.querySelector('#monthTable tbody').innerHTML = body + foot;
+    // Días que tiene el bucket en el calendario. Si Meta reportó menos que eso
+    // (rango recortado o días faltantes), la fila se marca "(parcial)" para que
+    // nadie compare una semana de 3 días contra una completa.
+    function diasCalendario(b, g) {
+      if (g === 'dia') return 1;
+      if (g === 'semana') return 7;
+      const p = b.key.split('-');
+      return new Date(Date.UTC(Number(p[0]), Number(p[1]), 0)).getUTCDate();
     }
 
     function renderPlatforms(rows) {
@@ -235,6 +311,17 @@
       + '<td class="num">' + fmtRoas(r.roas) + '</td></tr>'
       ).join('');
     }
+
+    // Cambiar la agrupación reusa la serie ya cargada: no vuelve a pegarle a la base.
+    document.querySelectorAll('.gran button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (gran === btn.dataset.g) return;
+        document.querySelectorAll('.gran button').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        gran = btn.dataset.g;
+        renderTrend();
+      });
+    });
 
     document.querySelectorAll('.period button').forEach(function(btn){
       btn.addEventListener('click', function(){
