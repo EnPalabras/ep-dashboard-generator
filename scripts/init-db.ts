@@ -10,6 +10,8 @@ async function main() {
   await pool.query(schema);
   const ga4Schema = readFileSync(path.resolve(import.meta.dir, "../src/batch/ga4/schema.sql"), "utf-8");
   await pool.query(ga4Schema);
+  const gAdsSchema = readFileSync(path.resolve(import.meta.dir, "../src/batch/google-ads/schema.sql"), "utf-8");
+  await pool.query(gAdsSchema);
   console.log("[init-db] tables created");
 
   const registryPath = path.resolve(import.meta.dir, "../dashboards/registry.json");
