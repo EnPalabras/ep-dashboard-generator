@@ -7,6 +7,8 @@ on:
 
 env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  # Vacio = el batch escribe solo en DATABASE_URL. Con valor, dual-write a v2.
+  DATABASE_URL_SECONDARY: ${{ secrets.DATABASE_URL_SECONDARY }}
   META_AD_ACCOUNT_ID: ${{ secrets.META_AD_ACCOUNT_ID }}
   META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
   META_INSTAGRAM_ACCOUNT_ID: ${{ secrets.META_INSTAGRAM_ACCOUNT_ID }}
