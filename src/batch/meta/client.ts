@@ -194,6 +194,53 @@ async function fetchAllPages<T>(url: string): Promise<T[]> {
   return out;
 }
 
+// Sin este filtro /insights a nivel anuncio omite los anuncios borrados y archivados,
+// y su gasto desaparece: ago-2025 daba $14,9 M contra $17,8 M a nivel cuenta.
+// Con los anuncios borrados incluidos, un rango largo hace que Meta corte con
+// "Service temporarily unavailable" (code 2) o un 500 aun con 7 días: se pide día por día.
+const WINDOW_DAYS = 1;
+
+async function withRetry<T>(fn: () => Promise<T>, attempts = 5): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt >= attempts) throw err;
+      await new Promise((r) => setTimeout(r, 5000 * attempt));
+    }
+  }
+}
+
+async function inWindows<T>(
+  dateFrom: string,
+  dateTo: string,
+  fetchRange: (from: string, to: string) => Promise<T[]>,
+): Promise<T[]> {
+  const out: T[] = [];
+  const end = new Date(`${dateTo}T00:00:00Z`);
+  for (let start = new Date(`${dateFrom}T00:00:00Z`); start <= end; ) {
+    const stop = new Date(start);
+    stop.setUTCDate(stop.getUTCDate() + WINDOW_DAYS - 1);
+    const to = stop > end ? end : stop;
+    out.push(...(await withRetry(() => fetchRange(start.toISOString().slice(0, 10), to.toISOString().slice(0, 10)))));
+    start = new Date(to);
+    start.setUTCDate(start.getUTCDate() + 1);
+  }
+  return out;
+}
+
+const ALL_AD_STATUSES = JSON.stringify([
+  {
+    field: "ad.effective_status",
+    operator: "IN",
+    value: [
+      "ACTIVE", "PAUSED", "DELETED", "ARCHIVED", "PENDING_REVIEW", "DISAPPROVED",
+      "PREAPPROVED", "PENDING_BILLING_INFO", "CAMPAIGN_PAUSED", "ADSET_PAUSED",
+      "IN_PROCESS", "WITH_ISSUES",
+    ],
+  },
+]);
+
 export async function fetchCampaignInsights(
   adAccountId: string,
   accessToken: string,
@@ -231,18 +278,21 @@ export async function fetchCampaignInsights(
     // si se pide junto a las métricas. Validado contra la API (jun 2026).
   ].join(",");
 
-  const url =
-    `${BASE_URL}/act_${adAccountId}/insights?` +
-    new URLSearchParams({
-      fields,
-      time_range: JSON.stringify({ since: dateFrom, until: dateTo }),
-      time_increment: "1",
-      level: "ad",
-      limit: "500",
-      access_token: accessToken,
-    }).toString();
+  return inWindows(dateFrom, dateTo, (since, until) => {
+    const url =
+      `${BASE_URL}/act_${adAccountId}/insights?` +
+      new URLSearchParams({
+        fields,
+        time_range: JSON.stringify({ since, until }),
+        time_increment: "1",
+        level: "ad",
+        filtering: ALL_AD_STATUSES,
+        limit: "500",
+        access_token: accessToken,
+      }).toString();
 
-  return fetchAllPages<MetaInsight>(url);
+    return fetchAllPages<MetaInsight>(url);
+  });
 }
 
 /**
@@ -272,19 +322,22 @@ export async function fetchPlatformInsights(
     "action_values",
   ].join(",");
 
-  const url =
-    `${BASE_URL}/act_${adAccountId}/insights?` +
-    new URLSearchParams({
-      fields,
-      time_range: JSON.stringify({ since: dateFrom, until: dateTo }),
-      time_increment: "1",
-      level: "ad",
-      breakdowns: "publisher_platform,platform_position",
-      limit: "500",
-      access_token: accessToken,
-    }).toString();
+  return inWindows(dateFrom, dateTo, (since, until) => {
+    const url =
+      `${BASE_URL}/act_${adAccountId}/insights?` +
+      new URLSearchParams({
+        fields,
+        time_range: JSON.stringify({ since, until }),
+        time_increment: "1",
+        level: "ad",
+        filtering: ALL_AD_STATUSES,
+        breakdowns: "publisher_platform,platform_position",
+        limit: "500",
+        access_token: accessToken,
+      }).toString();
 
-  return fetchAllPages<MetaPlatformInsight>(url);
+    return fetchAllPages<MetaPlatformInsight>(url);
+  });
 }
 
 /**

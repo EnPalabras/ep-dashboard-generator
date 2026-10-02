@@ -48,6 +48,9 @@ const pool = {
   },
 };
 
+// Tablas que existen sólo en v2 (no en el legacy). Sin DATABASE_URL_SECONDARY no hay a dónde escribir.
+export const v2 = secondary;
+
 primary
   .query("SELECT NOW()")
   .then(() => console.log("[db] primary connected"))
