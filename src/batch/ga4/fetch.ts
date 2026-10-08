@@ -34,6 +34,12 @@ export async function fetchAndStoreGA4Data(opts: FetchOptions = {}) {
   } catch (err: any) {
     console.error("[ga4] events failed:", err.message);
   }
+
+  try {
+    await storeLanding(creds, from, to);
+  } catch (err: any) {
+    console.error("[ga4] landing failed:", err.message);
+  }
 }
 
 async function storeTraffic(creds: GA4Credentials, from: string, to: string) {
@@ -185,4 +191,75 @@ async function storeEvents(creds: GA4Credentials, from: string, to: string) {
       agg.map((r) => r.conversions),
     ]
   );
+}
+
+export async function storeLanding(creds: GA4Credentials, from: string, to: string) {
+  console.log(`[ga4] fetching landing pages from ${from} to ${to}`);
+  const rows = await runReport(creds, {
+    dimensions: ["date", "landingPage", "sessionDefaultChannelGroup", "sessionSource", "sessionMedium"],
+    metrics: ["sessions", "engagedSessions", "transactions", "purchaseRevenue"],
+    startDate: from,
+    endDate: to,
+  });
+  console.log(`[ga4] received ${rows.length} landing rows`);
+  if (rows.length === 0) return;
+
+  const num = (s: string | undefined) => Number(s) || 0;
+
+  type Agg = {
+    date: string; landing_page: string; channel: string; source: string; medium: string;
+    sessions: number; engaged_sessions: number; transactions: number; purchase_revenue: number;
+  };
+  const acc = new Map<string, Agg>();
+  for (const r of rows) {
+    const date = ga4DateToISO(r.date ?? "");
+    const landing_page = r.landingPage || "(not set)";
+    const channel = r.sessionDefaultChannelGroup || "(not set)";
+    const source = r.sessionSource || "(not set)";
+    const medium = r.sessionMedium || "(not set)";
+    const key = `${date}|${landing_page}|${channel}|${source}|${medium}`;
+    const cur = acc.get(key) ?? {
+      date, landing_page, channel, source, medium,
+      sessions: 0, engaged_sessions: 0, transactions: 0, purchase_revenue: 0,
+    };
+    cur.sessions += num(r.sessions);
+    cur.engaged_sessions += num(r.engagedSessions);
+    cur.transactions += num(r.transactions);
+    cur.purchase_revenue += num(r.purchaseRevenue);
+    acc.set(key, cur);
+  }
+  const agg = [...acc.values()];
+
+  const CHUNK = 5000;
+  for (let i = 0; i < agg.length; i += CHUNK) {
+    const part = agg.slice(i, i + CHUNK);
+    await pool.query(
+      `
+      INSERT INTO ga4_landing_daily
+        (date, landing_page, channel, source, medium, sessions, engaged_sessions, transactions, purchase_revenue)
+      SELECT * FROM UNNEST(
+        $1::date[], $2::text[], $3::text[], $4::text[], $5::text[],
+        $6::integer[], $7::integer[], $8::integer[], $9::numeric[]
+      ) AS t(date, landing_page, channel, source, medium, sessions, engaged_sessions, transactions, purchase_revenue)
+      ON CONFLICT (date, landing_page, channel, source, medium)
+      DO UPDATE SET
+        sessions = EXCLUDED.sessions,
+        engaged_sessions = EXCLUDED.engaged_sessions,
+        transactions = EXCLUDED.transactions,
+        purchase_revenue = EXCLUDED.purchase_revenue
+      `,
+      [
+        part.map((r) => r.date),
+        part.map((r) => r.landing_page),
+        part.map((r) => r.channel),
+        part.map((r) => r.source),
+        part.map((r) => r.medium),
+        part.map((r) => r.sessions),
+        part.map((r) => r.engaged_sessions),
+        part.map((r) => r.transactions),
+        part.map((r) => r.purchase_revenue),
+      ]
+    );
+  }
+  console.log(`[ga4] ${agg.length} landing rows guardadas`);
 }

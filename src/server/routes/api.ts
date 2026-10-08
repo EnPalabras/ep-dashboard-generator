@@ -1,5 +1,5 @@
 import { Router } from "express";
-import pool from "../db/pool.ts";
+import pool, { v2 } from "../db/pool.ts";
 import { queries, buildValues } from "../queries/index.ts";
 import { metaAdAccountIds } from "../../batch/meta/fetch.ts";
 
@@ -14,9 +14,14 @@ router.get("/q/:slug/:query", async (req, res) => {
     return;
   }
 
+  if (q.db === "v2" && !v2) {
+    res.status(503).json({ error: "Falta DATABASE_URL_SECONDARY para leer de v2" });
+    return;
+  }
+
   try {
     const values = buildValues(q, req.query as Record<string, string | undefined>);
-    const result = await pool.query(q.sql, values);
+    const result = q.db === "v2" ? await v2!.query(q.sql, values) : await pool.query(q.sql, values);
     res.json(result.rows);
   } catch (err: any) {
     console.error(`[api] named query "${name}" failed:`, err.message);

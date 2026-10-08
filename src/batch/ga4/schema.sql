@@ -37,3 +37,23 @@ CREATE TABLE IF NOT EXISTS ga4_events_daily (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ga4_events_date ON ga4_events_daily (date);
+
+-- Tráfico y ventas por día × landing page × canal × source × medium.
+-- landing_page = landingPage de GA4 (path sin query string). Es lo que traía Windsor para el
+-- reporte de landings: sesiones, sesiones con interacción, transacciones e ingresos por compra.
+-- transactions es el evento purchase (≠ conversions, que suma todos los key events).
+CREATE TABLE IF NOT EXISTS ga4_landing_daily (
+  date             DATE        NOT NULL,
+  landing_page     TEXT        NOT NULL,
+  channel          TEXT        NOT NULL,   -- sessionDefaultChannelGroup
+  source           TEXT        NOT NULL,   -- sessionSource
+  medium           TEXT        NOT NULL,   -- sessionMedium
+  sessions         INTEGER     NOT NULL DEFAULT 0,
+  engaged_sessions INTEGER     NOT NULL DEFAULT 0,
+  transactions     INTEGER     NOT NULL DEFAULT 0,
+  purchase_revenue NUMERIC     NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (date, landing_page, channel, source, medium)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ga4_landing_date ON ga4_landing_daily (date);
