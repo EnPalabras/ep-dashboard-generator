@@ -145,17 +145,31 @@ ORDER BY array_position(ARRAY['meta', 'tiktok', 'gsearch', 'pmax', 'gother'], pl
 -- @query pedidos
 -- Por mes calendario (hora de Argentina): pedidos de Tienda Nube pagados y no cancelados
 -- (sin la tienda de mayoristas), transacciones de GA4, compras que se atribuye Meta y la
--- inversión total en pauta (Meta + Google + TikTok).
-WITH months AS (
-  SELECT to_char(m, 'YYYY-MM') AS m
+-- inversión total en pauta (Meta + Google + TikTok). tn_prev son los pedidos del mismo período
+-- un año antes: en el mes en curso, sólo hasta el mismo momento (dia_actual = día del mes de hoy).
+WITH now_ar AS (
+  SELECT now() AT TIME ZONE 'America/Argentina/Buenos_Aires' AS t
+),
+months AS (
+  SELECT m::date AS d, to_char(m, 'YYYY-MM') AS m
   FROM generate_series(date '2025-01-01', date_trunc('month', current_date - 1), interval '1 month') m
 ),
-tn AS (
-  SELECT to_char(placed_at AT TIME ZONE 'America/Argentina/Buenos_Aires', 'YYYY-MM') AS m, count(*) AS n
+paid AS (
+  SELECT placed_at AT TIME ZONE 'America/Argentina/Buenos_Aires' AS t
   FROM public.orders o
   WHERE channel = 'tiendanube' AND deleted_at IS NULL AND status <> 'cancelled'
-    AND placed_at >= '2025-01-01 03:00+00'
+    AND placed_at >= '2024-01-01 03:00+00'
     AND EXISTS (SELECT 1 FROM public.order_payments p WHERE p.order_id = o.id AND p.status = 'paid')
+),
+tn AS (
+  SELECT
+    months.m,
+    count(*) FILTER (WHERE paid.t >= months.d AND paid.t < months.d + interval '1 month') AS n,
+    count(*) FILTER (
+      WHERE paid.t >= months.d - interval '1 year'
+        AND paid.t < least(months.d - interval '1 year' + interval '1 month', (SELECT t FROM now_ar) - interval '1 year')
+    ) AS prev
+  FROM months CROSS JOIN paid
   GROUP BY 1
 ),
 ga AS (
@@ -176,6 +190,9 @@ other AS (
 SELECT
   months.m,
   coalesce(tn.n, 0)::int AS tn,
+  coalesce(tn.prev, 0)::int AS tn_prev,
+  CASE WHEN months.m = to_char((SELECT t FROM now_ar), 'YYYY-MM')
+       THEN extract(day FROM (SELECT t FROM now_ar))::int END AS dia_actual,
   coalesce(ga.n, 0)::int AS ga,
   coalesce(meta.n, 0)::int AS meta,
   round(coalesce(meta.spend, 0) + coalesce((SELECT sum(spend) FROM other WHERE other.m = months.m), 0))::float AS spend

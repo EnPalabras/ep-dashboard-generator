@@ -126,7 +126,7 @@ nav.back{margin:0 0 16px}nav.back a{color:var(--soft)}
 <h2>Pedidos reales de Tienda Nube contra lo que atribuye cada fuente</h2>
 <p class="sub">Pedidos pagados en la tienda online por mes, comparados con las transacciones que registra GA4 y las compras que se atribuye Meta.</p>
 <div class="scroll"><table id="tntable"></table></div>
-<p class="note">Pedidos de Tienda Nube con pago confirmado (abiertos o cerrados, sin cancelados), por mes calendario (hora de Argentina); no incluye Mercado Libre ni la tienda de mayoristas. Compras de Meta por mes calendario, con la ventana de atribución configurada en las cuentas. Inversión total = Meta + Google Ads + TikTok Ads del mes calendario. Las transacciones de GA4 son el total del mes calendario; pueden superar a Tienda Nube porque GA4 cuenta la compra al crear el pedido, aunque después no se pague o se cancele.</p>
+<p class="note">Pedidos de Tienda Nube con pago confirmado (abiertos o cerrados, sin cancelados), por mes calendario (hora de Argentina); no incluye Mercado Libre ni la tienda de mayoristas. El mes en curso se compara contra los mismos días del año anterior, hasta la misma hora. Compras de Meta por mes calendario, con la ventana de atribución configurada en las cuentas. Inversión total = Meta + Google Ads + TikTok Ads del mes calendario. Las transacciones de GA4 son el total del mes calendario; pueden superar a Tienda Nube porque GA4 cuenta la compra al crear el pedido, aunque después no se pague o se cancele.</p>
 </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -241,9 +241,9 @@ let tnC;
 function renderTN(){
  const ink=cssv("--soft"),grid=cssv("--line");
  const ml=m=>new Date(+m.slice(0,4),+m.slice(5)-1,1).toLocaleDateString("es-AR",{month:"short",year:"2-digit"}).replace(".","");
- const yoy=x=>{const p=TN.find(y=>y.m===(+x.m.slice(0,4)-1)+x.m.slice(4));if(!p)return "–";const v=Math.round((x.tn/p.tn-1)*100);return `<span style="color:${v<0?"#C0392B":"#2E8B57"}">${v>0?"+":""}${v}%</span>`};
- let h=`<thead><tr><th>Mes</th><th>Pedidos Tienda Nube</th><th>Compras según Meta</th><th>Meta / pedidos totales</th><th>Transacciones GA4</th><th>GA4 / pedidos totales</th><th>Inversión total en pauta</th><th>Inversión por pedido</th><th>Pedidos vs. mismo mes 2025</th></tr></thead><tbody>`;
- TN.forEach(x=>{h+=`<tr><td>${ml(x.m)}</td><td><b>${nf.format(x.tn)}</b></td><td>${nf.format(x.meta)}</td><td>${Math.round(x.meta/x.tn*100)}%</td><td>${nf.format(x.ga)}</td><td>${Math.round(x.ga/x.tn*100)}%</td><td>${money(x.spend)}</td><td>$ ${nf.format(Math.round(x.spend/x.tn))}</td><td>${yoy(x)}</td></tr>`});
+ const yoy=x=>{if(!x.tn_prev)return "–";const v=Math.round((x.tn/x.tn_prev-1)*100);return `<span style="color:${v<0?"#C0392B":"#2E8B57"}">${v>0?"+":""}${v}%</span>`};
+ let h=`<thead><tr><th>Mes</th><th>Pedidos Tienda Nube</th><th>Compras según Meta</th><th>Meta / pedidos totales</th><th>Transacciones GA4</th><th>GA4 / pedidos totales</th><th>Inversión total en pauta</th><th>Inversión por pedido</th><th>Pedidos vs. mismo período del año anterior</th></tr></thead><tbody>`;
+ TN.forEach(x=>{h+=`<tr><td>${ml(x.m)}${x.dia_actual?` <span style="color:var(--soft)">(al ${x.dia_actual})</span>`:""}</td><td><b>${nf.format(x.tn)}</b></td><td>${nf.format(x.meta)}</td><td>${Math.round(x.meta/x.tn*100)}%</td><td>${nf.format(x.ga)}</td><td>${Math.round(x.ga/x.tn*100)}%</td><td>${money(x.spend)}</td><td>$ ${nf.format(Math.round(x.spend/x.tn))}</td><td>${yoy(x)}</td></tr>`});
  document.getElementById("tntable").innerHTML=h+"</tbody>";
 }
 
