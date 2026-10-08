@@ -9,7 +9,7 @@ import {
 } from "../dashboards/store.ts";
 
 const ROOT = path.resolve(import.meta.dir, "../../..");
-const PUBLIC_URL = process.env.PUBLIC_URL || "https://ep-dashboard-generator-production.up.railway.app";
+const PUBLIC_URL = process.env.PUBLIC_URL || "https://dash.enpalabras.com.ar";
 const MAX_ROWS = Number(process.env.MCP_MAX_ROWS) || 50_000;
 const MAX_CHARS = Number(process.env.MCP_MAX_CHARS) || 200_000;
 

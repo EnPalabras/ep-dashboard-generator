@@ -41,7 +41,7 @@ Dos partes, identificadas por un `slug` en kebab-case (`gasto-semanal-meta`):
 2. `consultar` para explorar y validar los números con quien lo pide.
 3. Escribí el `.sql` y probalo con `probar_sql` (corre todas las queries con los parámetros de prueba).
 4. `publicar_dashboard` con el HTML y el SQL y `version_base: 0`. Queda publicado al instante en
-   `https://ep-dashboard-generator-production.up.railway.app/d/<slug>`.
+   `https://dash.enpalabras.com.ar/d/<slug>`.
 5. Para cambiar uno existente: `ver_dashboard` (te da el HTML, el SQL y la versión), cambiá lo pedido y
    publicá con `version_base` = esa versión y una `nota` de qué cambió. Si alguien publicó otra versión en el
    medio, se rechaza: volvé a traerla con `ver_dashboard` y aplicá el cambio encima. Nunca pises.

@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { provider, loginHandler } from "./oauth.ts";
 import { createMcpServer } from "./tools.ts";
 
-const PUBLIC_URL = process.env.PUBLIC_URL || "https://ep-dashboard-generator-production.up.railway.app";
+const PUBLIC_URL = process.env.PUBLIC_URL || "https://dash.enpalabras.com.ar";
 
 // Conector de Claude: OAuth propio (montado sobre el login de Google del generador) y MCP en /mcp.
 export function mountMcp(app: Express) {
