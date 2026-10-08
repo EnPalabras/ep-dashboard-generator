@@ -101,6 +101,12 @@ Una sola base, la de `en-palabras-core`: `public` (ventas, pagos, envíos, stock
 | `ep_dashboards` | el server web (`DATABASE_URL` en Railway) | leer y escribir `dashboards` / `dashboard_versions` y nada más |
 | `ep_readonly` | `/api/q` y el conector (`DATABASE_URL_READONLY`) | `SELECT` en `public` y `analytics` |
 
+> ⚠️ **En GitHub el secret que vale es `DATABASE_URL_SECONDARY`** (v2, `ep_analytics`): el workflow lo pasa como
+> `DATABASE_URL`. El secret `DATABASE_URL` apunta al **legacy** y ya no se usa. Ese mapeo es lo que cortó la
+> escritura del batch en el legacy el 2026-10-08: si alguien vuelve a poner `secrets.DATABASE_URL`, el batch
+> escribe otra vez en el legacy y deja de alimentar v2. Las tablas de `analytics` del legacy (y lo que las lea
+> en Metabase) quedaron congeladas en esa fecha.
+
 Los roles se crean con `docs/conector/rol-*.sql`. Las tablas se crean con `bun run db:init` (todos los
 `schema.sql`, idempotente).
 
