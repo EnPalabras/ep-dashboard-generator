@@ -4,6 +4,7 @@ import path from "path";
 import { setupAuth, requireAuth } from "./auth.ts";
 import apiRoutes from "./routes/api.ts";
 import dashboardRoutes from "./routes/dashboards.ts";
+import { mountMcp } from "./mcp/index.ts";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -15,6 +16,8 @@ app.use("/assets", express.static(path.resolve(import.meta.dir, "public/assets")
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+mountMcp(app);
 
 app.use(requireAuth);
 

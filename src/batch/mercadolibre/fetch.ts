@@ -1,4 +1,4 @@
-import { v2 } from "../../server/db/pool.ts";
+import pool from "../../server/db/pool.ts";
 import type { FetchOptions } from "../ga4/fetch.ts";
 
 const API = "https://api.mercadolibre.com/advertising";
@@ -35,7 +35,6 @@ async function get<T>(path: string, token: string): Promise<T> {
 export async function fetchAndStoreMercadoLibreAds(opts: FetchOptions = {}) {
   const token = process.env.MERCADOLIBRE_ACCESS_TOKEN;
   if (!token) throw new Error("MERCADOLIBRE_ACCESS_TOKEN es requerida para Mercado Libre Ads");
-  if (!v2) throw new Error("mercadolibre_ads_daily vive sólo en v2 y falta DATABASE_URL_SECONDARY");
 
   const oldest = daysAgo(MAX_LOOKBACK_DAYS);
   const to = opts.to ?? daysAgo(0);
@@ -67,7 +66,7 @@ export async function fetchAndStoreMercadoLibreAds(opts: FetchOptions = {}) {
       token,
     );
     for (const day of results) {
-      await v2.query(
+      await pool.query(
         `INSERT INTO mercadolibre_ads_daily
            (date, campaign_id, campaign_name, cost, prints, clicks, direct_amount, indirect_amount, total_amount, units_quantity, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())

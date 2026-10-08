@@ -137,9 +137,13 @@ async function storeFunnel(creds: GA4Credentials, w: { startDate: string; endDat
 
 async function storeCRByProduct(creds: GA4Credentials) {
   const { startDate, endDate } = last3Days();
-  const parsed = await pool.query(`SELECT variant, producto FROM public.productsparsed WHERE producto IS NOT NULL`);
-  const nameMap = new Map<string, string>(parsed.rows.map((r: any) => [r.variant, r.producto]));
-  const resolve = (id: string): string[] => comboToProducts[id] ?? (nameMap.has(id) ? [id] : []);
+  // El itemId de GA4 es el id de variante de Tienda Nube: se cuentan sólo las variantes que conoce la base.
+  const known = await pool.query(
+    `SELECT channel_variant_id FROM public.product_variants WHERE channel_variant_id IS NOT NULL
+     UNION SELECT channel_variant_id FROM public.order_items WHERE channel_variant_id IS NOT NULL`
+  );
+  const variants = new Set<string>(known.rows.map((r: { channel_variant_id: string }) => r.channel_variant_id));
+  const resolve = (id: string): string[] => comboToProducts[id] ?? (variants.has(id) ? [id] : []);
   const filter = { filter: { fieldName: "eventName", inListFilter: { values: CVR_EVENTS } } };
 
   const ev = await runReport(creds, { dimensions: ["itemId", "eventName", "date"], metrics: ["activeUsers"], startDate, endDate, dimensionFilter: filter });

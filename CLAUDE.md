@@ -6,38 +6,38 @@ This project serves dashboards for the En Palabras team. Dashboards are static H
 
 ## Slash commands disponibles
 
-Para los flujos más comunes hay slash commands en `.claude/commands/` que ya tienen el paso a paso. Cuando el pedido del usuario calce con uno de ellos, seguilo:
+Para crear o cambiar un dashboard seguí `/nuevo-dashboard` (`.claude/commands/nuevo-dashboard.md`).
 
-- `/nuevo-dashboard` — crear un dashboard nuevo (HTML + SQL co-locada + registro)
-- `/registrar-dashboard` — registrar en la base un HTML que ya existe
+## Dashboards: viven en la base, no en el repo
 
-## Creating a Dashboard
-
-When a user asks you to create a dashboard, follow these steps:
-
-### 1. Create the HTML file (+ su SQL hermano)
-
-Create a new `.html` file in the `dashboards/` directory. Use a descriptive slug name (e.g., `meta-weekly-spend.html`). Sus queries van **co-locadas** en `dashboards/<slug>.sql` (ver sección "Named queries" abajo).
-
-Every dashboard must:
-- Link the base CSS: `<link rel="stylesheet" href="/assets/dashboard-base.css">`
-- Load Chart.js from CDN: `<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>`
-- Include a back link: `<nav class="back"><a href="/">← All Dashboards</a></nav>`
-- Fetch data only from `/api/` endpoints (never external URLs) — sus queries desde `dashboards/<slug>.sql` vía `/api/q/<slug>/<query>`
-- Be self-contained (no imports, no build step)
-- Charts: antes de escribir código de gráficos, cargá el skill `dataviz`. Paleta de la casa: violeta EP `#774293`.
-
-### 2. Register the dashboard in the database
-
-**Usá siempre el script wrapper, nunca SQL crudo:**
+Cada dashboard es un HTML y un SQL guardados en `analytics.dashboards` (base de **v2**), con su historial en
+`analytics.dashboard_versions`. Publicar es instantáneo: no hay commit ni deploy. `dashboards/` está en
+`.gitignore`; es sólo la copia de trabajo de este script:
 
 ```bash
-bun run dashboard:register <slug> "<title>" "<author>" "<description>"
+bun run dashboard pull <slug>                                    # baja HTML + SQL a dashboards/ (y la versión)
+bun run dashboard check <slug> [from=.. to=..]                   # prueba las queries del .sql local
+bun run dashboard publish <slug> "<título>" "<descripción>" [nota]   # valida, prueba y publica
 ```
 
-Eso hace un INSERT en la tabla `dashboards` (o UPDATE si el slug ya existe). El argumento `file` es opcional y por defecto es `<slug>.html`.
+`publish` publica sobre la versión que bajaste con `pull` (0 si es nuevo): si alguien publicó otra en el
+medio, se rechaza en vez de pisarla. El autor sale de `git config user.name` (o `--autor=`).
 
-Ask the user for their name if you don't know who they are.
+Reglas y guía de la base: **`docs/conector/dashboards.md`** y **`docs/conector/base.md`**. Son las mismas que
+lee el conector de Claude.
+
+## Conector de Claude (`/mcp`)
+
+Servidor MCP en el mismo proceso (`src/server/mcp/`) para que cualquiera del equipo, desde claude.ai, consulte
+la base y publique dashboards sin tener el repo. OAuth propio sobre el login de Google del generador
+(`@enpalabras.com.ar`); los tokens son HMAC firmados con `MCP_SIGNING_SECRET`, sin tabla. Herramientas:
+`describir_base`, `consultar`, `guia_dashboards`, `listar_dashboards`, `ver_dashboard`, `probar_sql`,
+`publicar_dashboard`, `historial_dashboard`, `restaurar_version`.
+
+Todo lo que corre SQL del usuario (el conector y `/api/q`) pasa por `src/server/mcp/readonly.ts`: rol
+`ep_readonly` (`DATABASE_URL_READONLY`, ver `docs/conector/rol-readonly.sql`), transacción `READ ONLY`,
+protocolo extendido (una sola sentencia) y 5 min de timeout. `consultar` devuelve CSV, hasta 50.000 filas o
+200.000 caracteres (`MCP_MAX_ROWS`, `MCP_MAX_CHARS`).
 
 ## Schema de la base (rápido)
 
@@ -70,7 +70,7 @@ Fuente de verdad: `src/batch/meta/schema.sql`. Esto es para leer rápido.
 
 > ℹ️ `meta_updated_time` = última modificación del ad según Meta (`updated_time`); sirve para estimar pausas recientes (ej. "pausados últimos 7 días" = `effective_status LIKE '%PAUSED%' AND meta_updated_time >= now()-7d`). `preview_link` = `preview_shareable_link` de Meta, un link público para ver el anuncio sin entrar al Administrador. Ambos se pueblan en el batch (`storeAdEntities`). No hay historial de estado: es una foto que se sobrescribe cada corrida.
 
-> ℹ️ **No hay más `mv_meta_*` ni queries `meta-*` globales.** Las queries nombradas ahora viven **co-locadas por dashboard** en `dashboards/<slug>.sql` (ver "Named queries" abajo). Para KPIs de Meta, consultá las tablas de arriba directamente desde la `.sql` de tu dashboard.
+> ℹ️ **No hay más `mv_meta_*` ni queries `meta-*` globales.** Cada dashboard trae sus queries en su propio SQL (ver "Named queries" abajo).
 
 ## GA4 (Google Analytics)
 
@@ -87,13 +87,22 @@ Segunda fuente de datos, además de Meta. Mismo patrón: batch en `src/batch/ga4
 > ℹ️ Sanity check (últ. 28d): GA4 `purchase` ≈ 1.516 vs Meta `omni_purchase` ≈ 989 (GA4 ve todo el sitio, Meta solo lo atribuido → GA4 > Meta). AOV casi igual (~$52k), así que ambos miden compras reales. No es Tienda Nube: es lo que mide el tag de GA4.
 > ⚠️ El canal `Unassigned` puede traer `total_revenue` negativo (devoluciones/ajustes que GA4 no atribuye a un canal). Es esperado, no es un bug.
 
-**Registry** `analytics.dashboards`: `slug (PK), title, author, description, file, created_at` (lo llena `bun run dashboard:register`).
+**Dashboards** `analytics.dashboards` (v2): `slug (PK), title, author, description, html, sql, version, updated_at, updated_by, created_at` + `analytics.dashboard_versions` (una fila por publicación).
 
-## Base de datos (una sola: `server_en_palabras`)
+## Base de datos: la de v2 (proyecto `EP Core` en Railway)
 
-> **Única base:** la de producción del e-commerce (`server_en_palabras`, `DATABASE_URL`, usuario `ep_analytics`). La DB vieja de este repo (gondola) quedó **jubilada**. Todo vive acá: `public` (ventas/negocio, read-only) y `analytics` (Meta/GA4/funnel/IG + `dashboards`).
+Una sola base, la de `en-palabras-core`: `public` (ventas, pagos, envíos, stock; la escribe el core) y
+`analytics` (lo de este repo). **El legacy (`server_en_palabras`) ya no se lee ni se escribe desde acá**
+(desde el 2026-10-08). Tres roles, uno por uso:
 
-Permisos de `ep_analytics`: `SELECT` en `public` (no escribe ahí), `SELECT` en `analytics`, y **dueño** de las tablas que crea en `analytics` (las nuestras ricas + `dashboards`). Para alimentar las tablas **existentes** de `analytics` (las de Metabase: `instagram_by_day`, `sessions_per_month`, `events_per_month_page`, `checkout_dropoff_funnel`, `users_cr_by_product`) necesita `INSERT/UPDATE` — ver "Batch / ingest" abajo.
+| Rol | Quién | Puede |
+|---|---|---|
+| `ep_analytics` | el batch (`DATABASE_URL` del Action, secret `DATABASE_URL_SECONDARY`) | dueño de `analytics`, `SELECT` en `public` |
+| `ep_dashboards` | el server web (`DATABASE_URL` en Railway) | leer y escribir `dashboards` / `dashboard_versions` y nada más |
+| `ep_readonly` | `/api/q` y el conector (`DATABASE_URL_READONLY`) | `SELECT` en `public` y `analytics` |
+
+Los roles se crean con `docs/conector/rol-*.sql`. Las tablas se crean con `bun run db:init` (todos los
+`schema.sql`, idempotente).
 
 ## Batch / ingest de datos (corre acá — `bun run batch`)
 
@@ -101,33 +110,19 @@ Todo el intake de analíticas vive en `src/batch/`, orquestado por `run.ts` (cad
 
 - **`meta/`** (rico, nuestro) → `analytics.meta_campaign_insights`, `meta_account_daily`, `meta_account_totals`, `meta_platform_insights`, `meta_ad_entities`. Env: `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_IDS` (lista separada por comas; la vigente va última: desde el 2026-09-11 se gasta en `3378020092308629`, la prepaga `715603162702046` quedó sin saldo). **Tablas nuestras (ep_analytics las posee) — sin grant extra.**
 - **`ga4/`** (rico, nuestro) → `analytics.ga4_traffic_daily`, `ga4_events_daily`. Env: `GA_*`. **Tablas nuestras.**
-- **`ga4-reports/`** (portado de server_en_palabras) → tablas **existentes** `sessions_per_month`, `events_per_month_page`, `users_cr_by_product`, `checkout_dropoff_funnel`. Usa `runReport` + `runFunnelReport` (v1alpha). **Necesita `INSERT/UPDATE` en esas tablas.**
-- **`instagram/`** (portado) → tabla **existente** `instagram_by_day`. Env: `META_INSTAGRAM_ACCOUNT_ID` + `META_ACCESS_TOKEN` (token con permisos `instagram_*`). **Necesita `INSERT/UPDATE`.**
+- **`ga4-reports/`** → `sessions_per_month`, `events_per_month_page`, `users_cr_by_product` (sólo las variantes que conoce v2: `product_variants` + `order_items`), `checkout_dropoff_funnel`. Usa `runReport` + `runFunnelReport` (v1alpha).
+- **`instagram/`** → `instagram_by_day`. Env: `META_INSTAGRAM_ACCOUNT_ID` + `META_ACCESS_TOKEN` (token con permisos `instagram_*`).
 - **`google-ads/`** (rico, nuestro) → `analytics.google_ads_daily` (campaña × día: `cost`, `clicks`, `impressions`, `key_events`, `total_revenue`). **No usa la API de Google Ads**: el costo sale de GA4 (`advertiserAdCost`, `advertiserAdClicks`, `advertiserAdImpressions`) porque la cuenta está vinculada a la property, así que reusa las mismas `GA_*`. Verificado contra la planilla de Windsor: coincide **al peso** mes a mes de 2025-01 a 2026-03. **Tabla nuestra — sin grant.**
 - **`gsc/`** (rico, nuestro) → `analytics.gsc_site_daily` (país × dispositivo), `gsc_page_daily` (página) y `gsc_query_daily` (búsqueda × página × país × dispositivo), las tres por `search_type` (`web`, `image`). Search Analytics API sobre `sc-domain:enpalabras.com.ar` (`GSC_SITE_URL` para otra), con las mismas `GA_*`: la service account es usuaria restringida de la propiedad. **Los totales salen de `gsc_site_daily` o `gsc_page_daily`**: Google anonimiza las búsquedas poco frecuentes, y con la página junto a país o dispositivo esas filas se caen; `gsc_query_daily` suma ~la mitad de los clicks. Cada corrida re-pide los últimos 7 días (atraso de 2-3 días). Hay datos del 2025-05-26 al 2025-09-14 y desde el 2026-09-01; el hueco del medio no está en la API. **Sólo en v2**, como `combined_report_by_day`: el legacy no las tiene.
 - **`tiktok/`** (rico, nuestro) → `analytics.tiktok_ads_daily` (anuncio × día: spend, impresiones, clicks, ctr/cpc/cpm, conversiones, reach, likes/comments/shares/profile_visits). Business API v1.3 `report/integrated/get` (fetch plano, sin SDK). Env: `TIKTOK_ACCESS_TOKEN`, `TIKTOK_ADVERTISER_ID`. **Tabla nuestra — sin grant.** Datos desde 2025-08 (inicio de la cuenta).
 
-> ⚠️ **Grant pendiente** para que el batch alimente las tablas existentes de Metabase (correr como `postgres`):
-> ```sql
-> GRANT INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA analytics TO ep_analytics;
-> GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA analytics TO ep_analytics;
-> ALTER DEFAULT PRIVILEGES IN SCHEMA analytics GRANT INSERT, UPDATE, DELETE ON TABLES TO ep_analytics;
-> ```
-> Sin el grant, `meta/` y `ga4/` (tablas nuestras) funcionan igual; `ga4-reports/` e `instagram/` fallan con `permission denied` (42501) hasta correrlo. `meta_ad_report` queda intacta/vacía a propósito (usamos las tablas Meta ricas).
+Las queries de los dashboards corren en la base de **v2** (sólo lectura): ventas en `public.orders`,
+`order_items`, `order_payments`, … y marketing en `analytics`. Qué es una venta, qué significa cada tabla y
+las trampas conocidas: `docs/conector/base.md`.
 
-> ⚠️ **Qué cuenta como venta.** `Orders.status` es estado de *gestión*, no de pago, y **varía por canal** (TiendaNube `open`, MercadoLibre `paid`, Coshowroom `closed`). El indicador real es el **pago**: venta = orden **no cancelada** con al menos un `OrdersPayments.payment_status IN ('paid','approved')`. Revenue = `Orders.total_amount`. Toda query de ventas filtra así (ver `ventas-*.sql`).
-
-**Tablas útiles de `public`** (schema completo en `server_en_palabras/prisma/schema.prisma`): `Orders` (idEP, channel, status, total_amount, date_created, mail…), `OrdersItems` (product, quantity, total_product_amount), `OrdersPayments` (payment_method, payment_status, payment_received_amount), `OrdersShipping` (carrier, costos, zona), `gastos` (por categoría/área), `cmv_products` (CMV/COGS por producto/mes), `invoices` (facturación AFIP). Los nombres `PascalCase` y la columna `idEP` van **entre comillas** (`public."Orders"`, `o."idEP"`).
-
-**Dashboards ya armados** (cada uno con su `dashboards/<slug>.html` + `<slug>.sql`):
-
-- **`ventas-reales`** (`public`): resumen, por-canal, diario, por-pago, top-productos.
-- **`conversion`** (`analytics`): funnel de checkout semanal + CVR vista→compra por producto.
-- **`instagram`** (`analytics`): cuenta/día + engagement + **top contenido** (posts por alcance).
-- **`negocio-360`** (`public`+`analytics`): panorama ejecutivo (ventas, resultado, gastos, ROI mkt, sesiones) **con comparador de período** (rango + período anterior/YoY + deltas).
-- **`paid-media`** (`analytics`): Meta Ads vs TikTok Ads, mismo comparador de período.
-
-> 💡 El comparador de `negocio-360`/`paid-media` (rango configurable + período anterior/YoY + deltas coloreados) es el **molde reutilizable** para dashboards nuevos que necesiten comparación.
+**Dashboards publicados**: `trafico-landing` (GA4 por landing, conversión por producto, inversión vs. pedidos
+de TN) y `lanzamiento-journal-embarazo` (preventa del journal contra los lanzamientos de 2026). Los anteriores,
+que leían del legacy, se dieron de baja el 2026-10-08 (están en el historial de git).
 
 ## Available API Endpoints
 
@@ -147,35 +142,11 @@ Returns `{ "ad_account_id": "..." }` (el ID de cuenta de Meta del `.env`). Sirve
 
 Health check (no auth required). Returns `{ "status": "ok", "timestamp": "..." }`.
 
-### `GET /api/q/:slug/:query` — Named queries (co-locadas por dashboard)
+### `GET /api/q/:slug/:query` — Named queries
 
-Cada dashboard tiene **sus queries en un archivo hermano del HTML**: `dashboards/<slug>.html` + `dashboards/<slug>.sql`. Un dashboard = dos archivos; borrás el dashboard, borrás su SQL, sin queries huérfanas.
-
-Dentro del `.sql`, cada query se separa con el marcador **`-- @query <nombre>`**. El endpoint es **`/api/q/<slug>/<nombre>`**.
-
-```sql
--- dashboards/ventas-reales.sql
-
--- @query resumen
-SELECT count(*)::int AS ordenes, sum(total_amount) AS revenue
-FROM public."Orders" o
-WHERE o.date_created::date BETWEEN :from AND :to;
-
--- @query por-canal
-SELECT channel, sum(total_amount) AS revenue
-FROM public."Orders" o
-WHERE o.date_created::date BETWEEN :from AND :to
-GROUP BY channel ORDER BY revenue DESC;
-```
-
-Desde el HTML: `fetch('/api/q/ventas-reales/resumen?from=...&to=...')`. Los query params del URL tienen que matchear los `:nombre` de la SQL.
-
-Reglas:
-- **Solo `SELECT`** (el usuario `ep_analytics` no puede escribir en `public`, pero igual: nada de `INSERT/UPDATE/DELETE/DROP/ALTER`).
-- Usar siempre `:nombre` para inputs — nunca interpolar strings desde el cliente. El loader traduce `:nombre` → `$n` al levantar el server.
-- Marcador exacto `-- @query <nombre>` (kebab-case) en su propia línea. El texto antes del primer marcador es header/comentario, se ignora.
-- Nombres `PascalCase` de tabla y la columna `idEP` van entre comillas: `public."Orders"`, `o."idEP"`.
-- Los casts `::` (ej. `now()::date`) están bien.
+El SQL de cada dashboard separa sus queries con **`-- @query <nombre>`** y el endpoint es
+**`/api/q/<slug>/<nombre>`**, con los parámetros (`:from`, `:to`, …) por query string. Devuelve un array de
+filas. Corre como `ep_readonly` en v2. Ejemplo y reglas en `docs/conector/dashboards.md`.
 
 ## Available CSS Classes
 
@@ -190,13 +161,13 @@ The base stylesheet (`/assets/dashboard-base.css`) provides:
 
 ## Example Dashboard
 
-Referencias: `dashboards/ventas-reales.html` (simple, tablas + charts) y `dashboards/negocio-360.html` (con el comparador de período reutilizable). Cada uno con su `.sql` hermano.
+Referencias: `bun run dashboard pull trafico-landing` y `bun run dashboard pull lanzamiento-journal-embarazo`.
 
 ## Tech Stack
 
 - Runtime: Bun
 - Server: Express (TypeScript)
-- Database: PostgreSQL (una sola: la de `server_en_palabras`)
+- Database: PostgreSQL (la de v2, proyecto `EP Core`)
 - Charts: Chart.js 4 (CDN)
 - Auth: Google OAuth (restringido a @enpalabras.com.ar)
 - Styling: Custom base CSS (`/assets/dashboard-base.css`)
@@ -207,8 +178,7 @@ Referencias: `dashboards/ventas-reales.html` (simple, tablas + charts) y `dashbo
 bun run dev                 # Levantar server de desarrollo (hot reload)
 bun run start               # Server de producción
 bun run batch               # Traer datos de todas las fuentes (Meta, GA4, GA4-reports, IG, TikTok)
-bun run dashboard:register  # Registrar un dashboard en la DB (slug title author description)
-bun run query:check         # Probar una named query: query:check <slug>/<query> [from=.. to=..]
+bun run dashboard           # pull / check / publish de un dashboard (ver arriba)
 ```
 
 > Backfill de Meta por meses (la API rechaza rangos largos): `bun run scripts/backfill-meta.ts [from] [to]`.

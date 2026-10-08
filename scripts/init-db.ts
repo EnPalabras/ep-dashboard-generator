@@ -1,41 +1,24 @@
 import "dotenv/config";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync } from "fs";
 import path from "path";
-import pool, { v2 } from "../src/server/db/pool.ts";
-import { createViews } from "../src/server/db/views.ts";
+import pool from "../src/server/db/pool.ts";
+
+const SCHEMAS = [
+  "src/batch/meta/schema.sql",
+  "src/batch/ga4/schema.sql",
+  "src/batch/google-ads/schema.sql",
+  "src/batch/gsc/schema.sql",
+  "src/batch/tiktok/schema.sql",
+  "src/batch/instagram/schema.sql",
+  "src/batch/mercadolibre/schema.sql",
+  "src/server/dashboards/schema.sql",
+];
 
 async function main() {
-  console.log("[init-db] creating tables...");
-  const schema = readFileSync(path.resolve(import.meta.dir, "../src/batch/meta/schema.sql"), "utf-8");
-  await pool.query(schema);
-  const ga4Schema = readFileSync(path.resolve(import.meta.dir, "../src/batch/ga4/schema.sql"), "utf-8");
-  await pool.query(ga4Schema);
-  const gAdsSchema = readFileSync(path.resolve(import.meta.dir, "../src/batch/google-ads/schema.sql"), "utf-8");
-  await pool.query(gAdsSchema);
-  if (v2) {
-    const gscSchema = readFileSync(path.resolve(import.meta.dir, "../src/batch/gsc/schema.sql"), "utf-8");
-    await v2.query(gscSchema);
+  for (const file of SCHEMAS) {
+    await pool.query(readFileSync(path.resolve(import.meta.dir, "..", file), "utf-8"));
+    console.log(`[init-db] ${file}`);
   }
-  console.log("[init-db] tables created");
-
-  const registryPath = path.resolve(import.meta.dir, "../dashboards/registry.json");
-  if (existsSync(registryPath)) {
-    const entries = JSON.parse(readFileSync(registryPath, "utf-8"));
-    for (const d of entries) {
-      await pool.query(
-        `INSERT INTO dashboards (slug, title, author, description, file, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (slug) DO NOTHING`,
-        [d.slug, d.title, d.author, d.description, d.file, d.created]
-      );
-    }
-    console.log(`[init-db] seeded ${entries.length} dashboard(s) from registry.json`);
-  }
-
-  console.log("[init-db] creating materialized views...");
-  await createViews();
-  console.log("[init-db] done");
-
   await pool.end();
 }
 

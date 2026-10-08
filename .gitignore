@@ -35,3 +35,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Reportes exportados de referencia (Windsor/Metabase), no son parte de la app
 /reporte*.html
+
+# Copia de trabajo de `bun run dashboard pull`: los dashboards viven en la base (analytics.dashboards)
+/dashboards/

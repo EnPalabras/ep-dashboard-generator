@@ -1,4 +1,4 @@
-import { v2 } from "../../server/db/pool.ts";
+import pool from "../../server/db/pool.ts";
 import { gscCredsFromEnv, querySearchAnalytics, type GscCredentials, type GscDimension, type GscSearchType } from "./client.ts";
 import type { FetchOptions } from "../ga4/fetch.ts";
 
@@ -27,7 +27,6 @@ const TARGETS: Target[] = [
 export async function fetchAndStoreSearchConsole(opts: FetchOptions = {}) {
   const creds = gscCredsFromEnv();
   if (!creds) throw new Error("GA_* (service account) requeridas para Search Console");
-  if (!v2) throw new Error("Search Console se escribe sólo en v2 y falta DATABASE_URL_SECONDARY");
 
   const to = opts.to ?? daysAgo(0);
   const from = opts.from ?? daysAgo(Math.max(opts.lookbackDays ?? 0, MIN_LOOKBACK_DAYS));
@@ -56,7 +55,7 @@ async function store(creds: GscCredentials, { table, dimensions: cols }: Target,
     ];
     const casts = cols.map((c, j) => `$${j + 1}::${c === "date" ? "date" : "text"}[]`);
     const n = cols.length;
-    await v2!.query(
+    await pool.query(
       `
       INSERT INTO ${table} (${cols.join(", ")}, search_type, clicks, impressions, ctr, position)
       SELECT * FROM UNNEST(

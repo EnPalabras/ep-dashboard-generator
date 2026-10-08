@@ -1,29 +1,18 @@
 import { Router } from "express";
-import { existsSync } from "fs";
-import path from "path";
-import pool from "../db/pool.ts";
+import { listDashboards, getDashboard } from "../dashboards/store.ts";
 
 const router = Router();
-const DASHBOARDS_DIR = path.resolve(import.meta.dir, "../../../dashboards");
 
-interface DashboardEntry {
-  slug: string;
-  title: string;
-  author: string;
-  description: string;
-  file: string;
-  created_at: string;
-}
+const esc = (s: unknown) =>
+  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+const day = (d: unknown) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d ?? "").slice(0, 10));
 
 // Home page
 router.get("/", async (req, res) => {
   const user = req.user!;
-  const { rows: dashboards } = await pool.query<DashboardEntry>(
-    "SELECT slug, title, author, description, file, created_at FROM analytics.dashboards ORDER BY created_at DESC"
-  );
+  const dashboards = await listDashboards();
 
-  // Group by author
-  const byAuthor: Record<string, DashboardEntry[]> = {};
+  const byAuthor: Record<string, typeof dashboards> = {};
   for (const d of dashboards) {
     (byAuthor[d.author] ??= []).push(d);
   }
@@ -32,15 +21,15 @@ router.get("/", async (req, res) => {
     .map(
       ([author, items]) => `
       <section class="author-group">
-        <h3>${author}</h3>
+        <h3>${esc(author)}</h3>
         <div class="dashboard-grid">
           ${items
             .map(
               (d) => `
-              <a href="/d/${d.slug}" class="dashboard-card">
-                <strong>${d.title}</strong>
-                <p>${d.description}</p>
-                <small>${d.created_at}</small>
+              <a href="/d/${esc(d.slug)}" class="dashboard-card">
+                <strong>${esc(d.title)}</strong>
+                <p>${esc(d.description)}</p>
+                <small>${day(d.updated_at ?? d.created_at)}${d.updated_by && d.updated_by !== d.author ? ` · editado por ${esc(d.updated_by)}` : ""}</small>
               </a>`
             )
             .join("")}
@@ -51,7 +40,7 @@ router.get("/", async (req, res) => {
 
   const emptyState =
     dashboards.length === 0
-      ? `<div class="empty-state"><p>No dashboards yet.<br>Open Claude Code in this repo and ask for one!</p></div>`
+      ? `<div class="empty-state"><p>No dashboards yet.<br>Pedile uno a Claude con el conector de En Palabras.</p></div>`
       : "";
 
   res.send(`<!DOCTYPE html>
@@ -106,8 +95,8 @@ router.get("/", async (req, res) => {
   <header>
     <h1>En Palabras</h1>
     <div class="user-info">
-      <img src="${user.picture}" alt="" referrerpolicy="no-referrer">
-      <span>${user.name}</span>
+      <img src="${esc(user.picture)}" alt="" referrerpolicy="no-referrer">
+      <span>${esc(user.name)}</span>
       <a href="/auth/logout">Logout</a>
     </div>
   </header>
@@ -119,26 +108,13 @@ router.get("/", async (req, res) => {
 </html>`);
 });
 
-// Serve individual dashboard
 router.get("/d/:slug", async (req, res) => {
-  const { slug } = req.params;
-  const { rows } = await pool.query<DashboardEntry>(
-    "SELECT file FROM analytics.dashboards WHERE slug = $1",
-    [slug]
-  );
-
-  if (rows.length === 0) {
+  const d = await getDashboard(req.params.slug);
+  if (!d?.html) {
     res.status(404).send("Dashboard not found");
     return;
   }
-
-  const filePath = path.join(DASHBOARDS_DIR, rows[0]!.file);
-  if (!existsSync(filePath)) {
-    res.status(404).send("Dashboard file not found");
-    return;
-  }
-
-  res.sendFile(filePath);
+  res.type("html").send(d.html);
 });
 
 export default router;

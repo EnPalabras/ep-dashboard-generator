@@ -1,4 +1,4 @@
-import { v2 } from "../../server/db/pool.ts";
+import pool from "../../server/db/pool.ts";
 import type { FetchOptions } from "../ga4/fetch.ts";
 
 // combined_report_by_day en v2: gasto y resultado por canal × campaña × anuncio × día,
@@ -43,13 +43,12 @@ function daysAgo(n: number): string {
 }
 
 export async function buildCombinedReport(opts: FetchOptions = {}) {
-  if (!v2) throw new Error("combined_report_by_day se arma sólo en v2 y falta DATABASE_URL_SECONDARY");
 
   const to = opts.to ?? daysAgo(0);
   const requested = opts.from ?? daysAgo((opts.lookbackDays ?? 3) + 1);
 
   for (const c of CHANNELS) {
-    const { rows } = await v2.query(`SELECT MIN(date)::text AS first FROM ${c.source}`);
+    const { rows } = await pool.query(`SELECT MIN(date)::text AS first FROM ${c.source}`);
     const first: string | null = rows[0]?.first ?? null;
     if (!first) {
       console.log(`[combined] ${c.channel}: ${c.source} vacía, se deja lo que haya`);
@@ -58,7 +57,7 @@ export async function buildCombinedReport(opts: FetchOptions = {}) {
     const from = requested < first ? first : requested;
     if (from > to) continue;
 
-    const client = await v2.connect();
+    const client = await pool.connect();
     try {
       await client.query("BEGIN");
       await client.query(
