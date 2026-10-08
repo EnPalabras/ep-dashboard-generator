@@ -2,11 +2,13 @@ import { fetchCampaignInsights } from "../src/batch/meta/client";
 import { readFileSync, writeFileSync } from "fs";
 import pool from "../src/server/db/pool";
 import type { MetaInsight } from "../src/batch/meta/client";
+import { metaAdAccountIds } from "../src/batch/meta/fetch";
 
-const { META_AD_ACCOUNT_ID, META_ACCESS_TOKEN } = process.env;
+const META_AD_ACCOUNT_ID = metaAdAccountIds()[0];
+const { META_ACCESS_TOKEN } = process.env;
 
 if (!META_AD_ACCOUNT_ID || !META_ACCESS_TOKEN) {
-  throw new Error("META_AD_ACCOUNT_ID and META_ACCESS_TOKEN are required");
+  throw new Error("META_AD_ACCOUNT_IDS and META_ACCESS_TOKEN are required");
 }
 
 const results = await fetchCampaignInsights(META_AD_ACCOUNT_ID, META_ACCESS_TOKEN, "2026-04-11", "2026-04-20");

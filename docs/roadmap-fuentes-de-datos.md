@@ -10,7 +10,7 @@ que pega a la API oficial y hace upsert en Postgres, una **GitHub Action** que l
 
 | Fuente | Estado | Llaves | Prioridad |
 |--------|--------|--------|-----------|
-| **Meta Ads** | ✅ Implementado | Ya las tenemos (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`) | — |
+| **Meta Ads** | ✅ Implementado | Ya las tenemos (`META_ACCESS_TOKEN`, `META_AD_ACCOUNT_IDS`) | — |
 | Instagram orgánico | ⏳ Pendiente | Reusa el token de Meta (faltan permisos IG) | Alta (mismo token) |
 | GA4 | ✅ Implementado | Service account (`GA_*` en env) | — |
 | TikTok orgánico | ⏳ Pendiente | Falta app + OAuth de TikTok | Baja (API más limitada) |
