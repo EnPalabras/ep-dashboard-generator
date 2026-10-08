@@ -99,7 +99,7 @@ Permisos de `ep_analytics`: `SELECT` en `public` (no escribe ahí), `SELECT` en 
 
 Todo el intake de analíticas vive en `src/batch/`, orquestado por `run.ts` (cada fuente en su try/catch; una que falle no tumba al resto). Sin dependencias nuevas: todo `fetch` + `crypto`.
 
-- **`meta/`** (rico, nuestro) → `analytics.meta_campaign_insights`, `meta_account_daily`, `meta_account_totals`, `meta_platform_insights`, `meta_ad_entities`. Env: `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_ID`. **Tablas nuestras (ep_analytics las posee) — sin grant extra.**
+- **`meta/`** (rico, nuestro) → `analytics.meta_campaign_insights`, `meta_account_daily`, `meta_account_totals`, `meta_platform_insights`, `meta_ad_entities`. Env: `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_IDS` (lista separada por comas; la vigente va última: desde el 2026-09-11 se gasta en `3378020092308629`, la prepaga `715603162702046` quedó sin saldo). **Tablas nuestras (ep_analytics las posee) — sin grant extra.**
 - **`ga4/`** (rico, nuestro) → `analytics.ga4_traffic_daily`, `ga4_events_daily`. Env: `GA_*`. **Tablas nuestras.**
 - **`ga4-reports/`** (portado de server_en_palabras) → tablas **existentes** `sessions_per_month`, `events_per_month_page`, `users_cr_by_product`, `checkout_dropoff_funnel`. Usa `runReport` + `runFunnelReport` (v1alpha). **Necesita `INSERT/UPDATE` en esas tablas.**
 - **`instagram/`** (portado) → tabla **existente** `instagram_by_day`. Env: `META_INSTAGRAM_ACCOUNT_ID` + `META_ACCESS_TOKEN` (token con permisos `instagram_*`). **Necesita `INSERT/UPDATE`.**

@@ -7,8 +7,8 @@
 -- @query resumen
 SELECT
   round(sum(amount_spent)::numeric, 0)                                AS spend,
-  count(*)::int                                                       AS dias,
-  round((sum(amount_spent) / NULLIF(count(*), 0))::numeric, 0)        AS spend_dia,
+  count(DISTINCT date)::int                                           AS dias,
+  round((sum(amount_spent) / NULLIF(count(DISTINCT date), 0))::numeric, 0) AS spend_dia,
   sum(impressions)::bigint                                            AS impresiones,
   sum(link_click)::bigint                                             AS clicks,
   CASE WHEN sum(impressions) > 0

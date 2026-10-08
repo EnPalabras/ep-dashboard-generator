@@ -1,6 +1,7 @@
 import { Router } from "express";
 import pool from "../db/pool.ts";
 import { queries, buildValues } from "../queries/index.ts";
+import { metaAdAccountIds } from "../../batch/meta/fetch.ts";
 
 const router = Router();
 
@@ -24,8 +25,9 @@ router.get("/q/:slug/:query", async (req, res) => {
 });
 
 // ID de cuenta de Meta para armar links al Administrador de anuncios desde los dashboards.
+// Con varias cuentas, la vigente es la última de META_AD_ACCOUNT_IDS.
 router.get("/meta/config", (_req, res) => {
-  res.json({ ad_account_id: process.env.META_AD_ACCOUNT_ID || "" });
+  res.json({ ad_account_id: metaAdAccountIds().at(-1) ?? "" });
 });
 
 export default router;

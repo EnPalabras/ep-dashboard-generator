@@ -31,12 +31,19 @@ export interface FetchOptions {
   to?: string;
 }
 
+export function metaAdAccountIds(): string[] {
+  return (process.env.META_AD_ACCOUNT_IDS ?? process.env.META_AD_ACCOUNT_ID ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export async function fetchAndStoreMetaData(opts: FetchOptions = {}) {
-  const adAccountId = process.env.META_AD_ACCOUNT_ID;
+  const adAccountIds = metaAdAccountIds();
   const accessToken = process.env.META_ACCESS_TOKEN;
 
-  if (!adAccountId || !accessToken) {
-    throw new Error("META_AD_ACCOUNT_ID and META_ACCESS_TOKEN are required");
+  if (adAccountIds.length === 0 || !accessToken) {
+    throw new Error("META_AD_ACCOUNT_IDS and META_ACCESS_TOKEN are required");
   }
 
   const dateTo = opts.to ?? daysAgo(0);
@@ -47,34 +54,22 @@ export async function fetchAndStoreMetaData(opts: FetchOptions = {}) {
   // fila nueva revienta con duplicate key en el pkey. La resincronizamos antes de insertar.
   await syncSerialSequences(["meta_campaign_insights", "meta_platform_insights"]);
 
-  try {
-    await storeAdInsights(adAccountId, accessToken, dateFrom, dateTo);
-  } catch (err: any) {
-    console.error("[meta] ad insights failed:", err.message);
-  }
-
-  try {
-    await storePlatformInsights(adAccountId, accessToken, dateFrom, dateTo);
-  } catch (err: any) {
-    console.error("[meta] platform insights failed:", err.message);
-  }
-
-  try {
-    await storeAdEntities(adAccountId, accessToken);
-  } catch (err: any) {
-    console.error("[meta] ad entities failed:", err.message);
-  }
-
-  try {
-    await storeAccountDaily(adAccountId, accessToken, dateFrom, dateTo);
-  } catch (err: any) {
-    console.error("[meta] account daily failed:", err.message);
-  }
-
-  try {
-    await storeAccountTotals(adAccountId, accessToken);
-  } catch (err: any) {
-    console.error("[meta] account totals failed:", err.message);
+  for (const adAccountId of adAccountIds) {
+    console.log(`[meta] account ${adAccountId}`);
+    const steps: [string, () => Promise<void>][] = [
+      ["ad insights", () => storeAdInsights(adAccountId, accessToken, dateFrom, dateTo)],
+      ["platform insights", () => storePlatformInsights(adAccountId, accessToken, dateFrom, dateTo)],
+      ["ad entities", () => storeAdEntities(adAccountId, accessToken)],
+      ["account daily", () => storeAccountDaily(adAccountId, accessToken, dateFrom, dateTo)],
+      ["account totals", () => storeAccountTotals(adAccountId, accessToken)],
+    ];
+    for (const [name, run] of steps) {
+      try {
+        await run();
+      } catch (err: any) {
+        console.error(`[meta] ${adAccountId} ${name} failed:`, err.message);
+      }
+    }
   }
 }
 
