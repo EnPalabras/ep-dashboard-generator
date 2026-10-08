@@ -1,9 +1,9 @@
 import pg from "pg";
 
-const url = process.env.DATABASE_URL_READONLY || process.env.DATABASE_URL_SECONDARY;
+const url = process.env.DATABASE_URL_READONLY;
 
-// Base de v2, sólo lectura. Con DATABASE_URL_READONLY se usa el rol ep_readonly; la transacción
-// READ ONLY y el protocolo extendido (una sola sentencia por consulta) valen para cualquier rol.
+// Base de v2 con el rol ep_readonly. La transacción READ ONLY y el protocolo extendido (una sola
+// sentencia por consulta) son una segunda barrera por si el rol tuviera más permisos de los debidos.
 const pool = url
   ? new pg.Pool({
       connectionString: url,
@@ -26,7 +26,7 @@ export interface ReadResult {
 }
 
 export async function readOnly(sql: string, values: unknown[] = [], timeoutMs = TIMEOUT_MS): Promise<ReadResult> {
-  if (!pool) throw new Error("Falta DATABASE_URL_READONLY (o DATABASE_URL_SECONDARY) para leer de v2");
+  if (!pool) throw new Error("Falta DATABASE_URL_READONLY");
   const client = await pool.connect();
   const t = Date.now();
   try {

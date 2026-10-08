@@ -1,4 +1,4 @@
-import { v2 } from "../db/pool.ts";
+import pool from "../db/pool.ts";
 import { parseSqlFile, buildValues, type CompiledQuery } from "../queries/index.ts";
 import { readOnly } from "../mcp/readonly.ts";
 
@@ -17,13 +17,9 @@ export interface Dashboard {
   updated_by: string | null;
 }
 
-function db() {
-  if (!v2) throw new Error("Falta DATABASE_URL_SECONDARY: los dashboards viven en la base de v2");
-  return v2;
-}
 
 export async function listDashboards(): Promise<Omit<Dashboard, "html" | "sql">[]> {
-  const { rows } = await db().query(
+  const { rows } = await pool.query(
     `SELECT slug, title, author, description, version, created_at, updated_at, updated_by
      FROM analytics.dashboards WHERE html IS NOT NULL ORDER BY coalesce(updated_at, created_at) DESC`
   );
@@ -31,7 +27,7 @@ export async function listDashboards(): Promise<Omit<Dashboard, "html" | "sql">[
 }
 
 export async function getDashboard(slug: string): Promise<Dashboard | null> {
-  const { rows } = await db().query("SELECT * FROM analytics.dashboards WHERE slug = $1 AND html IS NOT NULL", [slug]);
+  const { rows } = await pool.query("SELECT * FROM analytics.dashboards WHERE slug = $1 AND html IS NOT NULL", [slug]);
   return rows[0] ?? null;
 }
 
@@ -41,7 +37,7 @@ const queryCache = new Map<string, { at: number; version: number; queries: Recor
 export async function getQuery(slug: string, name: string): Promise<CompiledQuery | null> {
   let hit = queryCache.get(slug);
   if (!hit || Date.now() - hit.at > 10_000) {
-    const { rows } = await db().query("SELECT version, sql FROM analytics.dashboards WHERE slug = $1", [slug]);
+    const { rows } = await pool.query("SELECT version, sql FROM analytics.dashboards WHERE slug = $1", [slug]);
     const row = rows[0];
     if (!row?.sql) return null;
     hit = hit && hit.version === row.version ? { ...hit, at: Date.now() } : { at: Date.now(), version: row.version, queries: parseSqlFile(row.sql) };
@@ -109,7 +105,7 @@ export interface PublishInput {
 // Publica en una transacción. `baseVersion` es la versión sobre la que se trabajó (0 si es nuevo):
 // si en el medio alguien publicó otra, se rechaza en vez de pisarla.
 export async function publishDashboard(input: PublishInput): Promise<number> {
-  const client = await db().connect();
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const { rows } = await client.query("SELECT version FROM analytics.dashboards WHERE slug = $1 FOR UPDATE", [input.slug]);
@@ -146,7 +142,7 @@ export async function publishDashboard(input: PublishInput): Promise<number> {
 }
 
 export async function history(slug: string) {
-  const { rows } = await db().query(
+  const { rows } = await pool.query(
     "SELECT version, title, author, note, created_at FROM analytics.dashboard_versions WHERE slug = $1 ORDER BY version DESC",
     [slug]
   );
@@ -154,7 +150,7 @@ export async function history(slug: string) {
 }
 
 export async function restore(slug: string, version: number, author: string): Promise<number> {
-  const { rows } = await db().query("SELECT * FROM analytics.dashboard_versions WHERE slug = $1 AND version = $2", [slug, version]);
+  const { rows } = await pool.query("SELECT * FROM analytics.dashboard_versions WHERE slug = $1 AND version = $2", [slug, version]);
   const v = rows[0];
   if (!v) throw new Error(`No existe la versión ${version} de ${slug}`);
   const current = await getDashboard(slug);

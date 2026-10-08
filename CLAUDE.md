@@ -89,11 +89,20 @@ Segunda fuente de datos, además de Meta. Mismo patrón: batch en `src/batch/ga4
 
 **Dashboards** `analytics.dashboards` (v2): `slug (PK), title, author, description, html, sql, version, updated_at, updated_by, created_at` + `analytics.dashboard_versions` (una fila por publicación).
 
-## Base de datos (una sola: `server_en_palabras`)
+## Base de datos: la de v2 (proyecto `EP Core` en Railway)
 
-> **Única base:** la de producción del e-commerce (`server_en_palabras`, `DATABASE_URL`, usuario `ep_analytics`). La DB vieja de este repo (gondola) quedó **jubilada**. Todo vive acá: `public` (ventas/negocio, read-only) y `analytics` (Meta/GA4/funnel/IG + `dashboards`).
+Una sola base, la de `en-palabras-core`: `public` (ventas, pagos, envíos, stock; la escribe el core) y
+`analytics` (lo de este repo). **El legacy (`server_en_palabras`) ya no se lee ni se escribe desde acá**
+(desde el 2026-10-08). Tres roles, uno por uso:
 
-Permisos de `ep_analytics`: `SELECT` en `public` (no escribe ahí), `SELECT` en `analytics`, y **dueño** de las tablas que crea en `analytics` (las nuestras ricas + `dashboards`). Para alimentar las tablas **existentes** de `analytics` (las de Metabase: `instagram_by_day`, `sessions_per_month`, `events_per_month_page`, `checkout_dropoff_funnel`, `users_cr_by_product`) necesita `INSERT/UPDATE` — ver "Batch / ingest" abajo.
+| Rol | Quién | Puede |
+|---|---|---|
+| `ep_analytics` | el batch (`DATABASE_URL` del Action, secret `DATABASE_URL_SECONDARY`) | dueño de `analytics`, `SELECT` en `public` |
+| `ep_dashboards` | el server web (`DATABASE_URL` en Railway) | leer y escribir `dashboards` / `dashboard_versions` y nada más |
+| `ep_readonly` | `/api/q` y el conector (`DATABASE_URL_READONLY`) | `SELECT` en `public` y `analytics` |
+
+Los roles se crean con `docs/conector/rol-*.sql`. Las tablas se crean con `bun run db:init` (todos los
+`schema.sql`, idempotente).
 
 ## Batch / ingest de datos (corre acá — `bun run batch`)
 
@@ -101,19 +110,11 @@ Todo el intake de analíticas vive en `src/batch/`, orquestado por `run.ts` (cad
 
 - **`meta/`** (rico, nuestro) → `analytics.meta_campaign_insights`, `meta_account_daily`, `meta_account_totals`, `meta_platform_insights`, `meta_ad_entities`. Env: `META_ACCESS_TOKEN`, `META_AD_ACCOUNT_IDS` (lista separada por comas; la vigente va última: desde el 2026-09-11 se gasta en `3378020092308629`, la prepaga `715603162702046` quedó sin saldo). **Tablas nuestras (ep_analytics las posee) — sin grant extra.**
 - **`ga4/`** (rico, nuestro) → `analytics.ga4_traffic_daily`, `ga4_events_daily`. Env: `GA_*`. **Tablas nuestras.**
-- **`ga4-reports/`** (portado de server_en_palabras) → tablas **existentes** `sessions_per_month`, `events_per_month_page`, `users_cr_by_product`, `checkout_dropoff_funnel`. Usa `runReport` + `runFunnelReport` (v1alpha). **Necesita `INSERT/UPDATE` en esas tablas.**
-- **`instagram/`** (portado) → tabla **existente** `instagram_by_day`. Env: `META_INSTAGRAM_ACCOUNT_ID` + `META_ACCESS_TOKEN` (token con permisos `instagram_*`). **Necesita `INSERT/UPDATE`.**
+- **`ga4-reports/`** → `sessions_per_month`, `events_per_month_page`, `users_cr_by_product` (sólo las variantes que conoce v2: `product_variants` + `order_items`), `checkout_dropoff_funnel`. Usa `runReport` + `runFunnelReport` (v1alpha).
+- **`instagram/`** → `instagram_by_day`. Env: `META_INSTAGRAM_ACCOUNT_ID` + `META_ACCESS_TOKEN` (token con permisos `instagram_*`).
 - **`google-ads/`** (rico, nuestro) → `analytics.google_ads_daily` (campaña × día: `cost`, `clicks`, `impressions`, `key_events`, `total_revenue`). **No usa la API de Google Ads**: el costo sale de GA4 (`advertiserAdCost`, `advertiserAdClicks`, `advertiserAdImpressions`) porque la cuenta está vinculada a la property, así que reusa las mismas `GA_*`. Verificado contra la planilla de Windsor: coincide **al peso** mes a mes de 2025-01 a 2026-03. **Tabla nuestra — sin grant.**
 - **`gsc/`** (rico, nuestro) → `analytics.gsc_site_daily` (país × dispositivo), `gsc_page_daily` (página) y `gsc_query_daily` (búsqueda × página × país × dispositivo), las tres por `search_type` (`web`, `image`). Search Analytics API sobre `sc-domain:enpalabras.com.ar` (`GSC_SITE_URL` para otra), con las mismas `GA_*`: la service account es usuaria restringida de la propiedad. **Los totales salen de `gsc_site_daily` o `gsc_page_daily`**: Google anonimiza las búsquedas poco frecuentes, y con la página junto a país o dispositivo esas filas se caen; `gsc_query_daily` suma ~la mitad de los clicks. Cada corrida re-pide los últimos 7 días (atraso de 2-3 días). Hay datos del 2025-05-26 al 2025-09-14 y desde el 2026-09-01; el hueco del medio no está en la API. **Sólo en v2**, como `combined_report_by_day`: el legacy no las tiene.
 - **`tiktok/`** (rico, nuestro) → `analytics.tiktok_ads_daily` (anuncio × día: spend, impresiones, clicks, ctr/cpc/cpm, conversiones, reach, likes/comments/shares/profile_visits). Business API v1.3 `report/integrated/get` (fetch plano, sin SDK). Env: `TIKTOK_ACCESS_TOKEN`, `TIKTOK_ADVERTISER_ID`. **Tabla nuestra — sin grant.** Datos desde 2025-08 (inicio de la cuenta).
-
-> ⚠️ **Grant pendiente** para que el batch alimente las tablas existentes de Metabase (correr como `postgres`):
-> ```sql
-> GRANT INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA analytics TO ep_analytics;
-> GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA analytics TO ep_analytics;
-> ALTER DEFAULT PRIVILEGES IN SCHEMA analytics GRANT INSERT, UPDATE, DELETE ON TABLES TO ep_analytics;
-> ```
-> Sin el grant, `meta/` y `ga4/` (tablas nuestras) funcionan igual; `ga4-reports/` e `instagram/` fallan con `permission denied` (42501) hasta correrlo. `meta_ad_report` queda intacta/vacía a propósito (usamos las tablas Meta ricas).
 
 Las queries de los dashboards corren en la base de **v2** (sólo lectura): ventas en `public.orders`,
 `order_items`, `order_payments`, … y marketing en `analytics`. Qué es una venta, qué significa cada tabla y
@@ -166,7 +167,7 @@ Referencias: `bun run dashboard pull trafico-landing` y `bun run dashboard pull 
 
 - Runtime: Bun
 - Server: Express (TypeScript)
-- Database: PostgreSQL (una sola: la de `server_en_palabras`)
+- Database: PostgreSQL (la de v2, proyecto `EP Core`)
 - Charts: Chart.js 4 (CDN)
 - Auth: Google OAuth (restringido a @enpalabras.com.ar)
 - Styling: Custom base CSS (`/assets/dashboard-base.css`)
