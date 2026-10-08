@@ -1,7 +1,7 @@
 -- @db v2
 -- @title Prueba del conector
 -- @author Dev User
--- @description PR de prueba, se cierra enseguida.
+-- @description Segunda versión.
 
 -- @query por-canal
 SELECT channel, count(*)::int AS pedidos, min((placed_at AT TIME ZONE 'America/Argentina/Buenos_Aires')::date) AS desde
