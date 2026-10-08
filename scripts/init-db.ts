@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
-import pool from "../src/server/db/pool.ts";
+import pool, { v2 } from "../src/server/db/pool.ts";
 import { createViews } from "../src/server/db/views.ts";
 
 async function main() {
@@ -12,6 +12,10 @@ async function main() {
   await pool.query(ga4Schema);
   const gAdsSchema = readFileSync(path.resolve(import.meta.dir, "../src/batch/google-ads/schema.sql"), "utf-8");
   await pool.query(gAdsSchema);
+  if (v2) {
+    const gscSchema = readFileSync(path.resolve(import.meta.dir, "../src/batch/gsc/schema.sql"), "utf-8");
+    await v2.query(gscSchema);
+  }
   console.log("[init-db] tables created");
 
   const registryPath = path.resolve(import.meta.dir, "../dashboards/registry.json");

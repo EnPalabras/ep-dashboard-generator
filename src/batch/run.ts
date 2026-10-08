@@ -7,6 +7,7 @@ import { fetchAndStoreInstagramPosts } from "./instagram/posts.ts";
 import { fetchAndStoreTikTok } from "./tiktok/fetch.ts";
 import { fetchAndStoreGoogleAds } from "./google-ads/fetch.ts";
 import { fetchAndStoreMercadoLibreAds } from "./mercadolibre/fetch.ts";
+import { fetchAndStoreSearchConsole } from "./gsc/fetch.ts";
 import { buildCombinedReport } from "./combined/build.ts";
 import pool from "../server/db/pool.ts";
 
@@ -44,6 +45,7 @@ async function main() {
   await step("tiktok ads", () => fetchAndStoreTikTok(opts));
   await step("google ads", () => fetchAndStoreGoogleAds(opts));
   await step("mercado libre ads", () => fetchAndStoreMercadoLibreAds(opts));
+  await step("search console", () => fetchAndStoreSearchConsole(opts));
 
   // Ingest portado de server_en_palabras → tablas existentes de analytics (necesita write grant).
   await step("ga4 reports (sessions/events/funnel/product)", () => fetchAndStoreGA4Reports());

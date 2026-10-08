@@ -30,13 +30,13 @@ function b64url(input: string | Buffer): string {
 }
 
 /** Firma un JWT y lo canjea por un access token de corta vida (~1h). */
-async function getAccessToken(clientEmail: string, privateKey: string): Promise<string> {
+export async function getAccessToken(clientEmail: string, privateKey: string, scope = SCOPE): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claim = b64url(
     JSON.stringify({
       iss: clientEmail,
-      scope: SCOPE,
+      scope,
       aud: TOKEN_URL,
       iat: now,
       exp: now + 3600,
