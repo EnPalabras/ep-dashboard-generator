@@ -1,28 +1,22 @@
 import { Router } from "express";
-import pool, { v2 } from "../db/pool.ts";
-import { queries, buildValues } from "../queries/index.ts";
+import { buildValues } from "../queries/index.ts";
+import { getQuery } from "../dashboards/store.ts";
+import { readOnly } from "../mcp/readonly.ts";
 import { metaAdAccountIds } from "../../batch/meta/fetch.ts";
 
 const router = Router();
 
-// Queries co-locadas por dashboard: /api/q/<slug>/<query> → dashboards/<slug>.sql
+// Queries de cada dashboard (guardadas en la base): /api/q/<slug>/<query>, en sólo lectura sobre v2.
 router.get("/q/:slug/:query", async (req, res) => {
   const name = `${req.params.slug}/${req.params.query}`;
-  const q = queries[name];
-  if (!q) {
-    res.status(404).json({ error: `Unknown query: ${name}` });
-    return;
-  }
-
-  if (q.db === "v2" && !v2) {
-    res.status(503).json({ error: "Falta DATABASE_URL_SECONDARY para leer de v2" });
-    return;
-  }
-
   try {
-    const values = buildValues(q, req.query as Record<string, string | undefined>);
-    const result = q.db === "v2" ? await v2!.query(q.sql, values) : await pool.query(q.sql, values);
-    res.json(result.rows);
+    const q = await getQuery(req.params.slug, req.params.query);
+    if (!q) {
+      res.status(404).json({ error: `Unknown query: ${name}` });
+      return;
+    }
+    const r = await readOnly(q.sql, buildValues(q, req.query as Record<string, string | undefined>));
+    res.json(r.rows.map((row) => Object.fromEntries(r.fields.map((f, i) => [f, row[i]]))));
   } catch (err: any) {
     console.error(`[api] named query "${name}" failed:`, err.message);
     res.status(500).json({ error: "Query failed" });

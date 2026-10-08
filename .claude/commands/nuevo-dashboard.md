@@ -1,45 +1,20 @@
 ---
-description: Crear un dashboard nuevo (HTML + registro en la base)
+description: Crear o cambiar un dashboard (se publica en la base, sin commit ni deploy)
 ---
 
-Vas a crear un dashboard nuevo para el equipo de En Palabras. Seguí estos pasos y **antes de cada acción, decile al usuario en castellano qué vas a hacer y por qué**. No ejecutes nada sin avisar primero.
+Vas a crear o cambiar un dashboard para el equipo de En Palabras. Hablá en castellano y, antes de cada acción que modifique algo, decile al usuario en una frase qué vas a hacer y por qué.
 
-## Información que necesitás
+## Antes de empezar
 
-Si el usuario no te lo dio todo, preguntale (en castellano, una pregunta a la vez):
+1. **¿Qué tiene que mostrar?** Pregunta de respuesta libre: **no** uses `AskUserQuestion` con opciones acá. Si la respuesta es vaga, repreguntá en texto.
+2. **¿Cómo se llama?** Podés ofrecer 2-3 títulos cortos. De ahí sale el `slug` en kebab-case.
+3. Leé `docs/conector/dashboards.md` (reglas del HTML) y `docs/conector/base.md` (qué hay en la base y cómo se define una venta). Antes de escribir gráficos, cargá el skill `dataviz`.
 
-1. **¿Qué tiene que mostrar el dashboard?** (descripción funcional)
-   - **IMPORTANTE:** esta pregunta es siempre de respuesta libre. **NO uses `AskUserQuestion` con opciones predefinidas acá** — no le sugieras al usuario qué dashboard armar. Esperá a que escriba lo que necesita con sus propias palabras. Si la respuesta es muy vaga, repreguntá con texto plano (no con menú).
-2. **¿Cómo se llama?** (título visible, ej: "Gasto Semanal de Meta") — acá sí podés ofrecer 2-3 opciones cortas si el usuario no propuso un título.
-3. **¿Quién lo pide?** (nombre del autor — guardalo en memoria si no lo sabés)
+## Pasos
 
-De ahí derivás un **slug** corto en kebab-case (ej: `gasto-semanal-meta`).
-
-## Pasos a ejecutar
-
-1. **Decile al usuario**: "Voy a crear `dashboards/<slug>.html` y sus queries en `dashboards/<slug>.sql`, con [resumen de lo que va a mostrar y de qué datos toma]."
-   - Mirá `@CLAUDE.md` — sección "Base de datos" (qué hay: ventas en `public`, GA4/funnel/IG en `analytics`) y "Named queries".
-   - Referencia de estructura: `@dashboards/ventas-reales.html` + `@dashboards/ventas-reales.sql` (HTML auto-contenido + SQL co-locada con marcadores `-- @query <nombre>`).
-   - Las queries van **co-locadas** en `dashboards/<slug>.sql`; el HTML las llama vía `/api/q/<slug>/<query>`.
-   - **Antes de escribir gráficos, cargá el skill `dataviz`.** Paleta de la casa: violeta EP `#774293`.
-
-2. **Verificá cada query** con `bun run query:check <slug>/<query> [from=.. to=..]` (read-only, no pide permisos). Confirmá que devuelven filas antes de seguir. Si una falla, corregí la `.sql`.
-
-3. **Decile al usuario**: "Ahora lo registro con `bun run dashboard:register <slug> "<title>" "<author>" "<description>"`."
-   - Ejecutá ese comando (INSERT/UPDATE en `analytics.dashboards`). **No hagas SQL crudo a mano.**
-
-4. **Decile al usuario**: "Voy a commitear y pushear los archivos nuevos al repo."
-   - Corré `git status` para confirmar qué se modificó.
-   - Stageá **sólo** los archivos del dashboard (`dashboards/<slug>.html` y `dashboards/<slug>.sql`). Nada de `git add -A`.
-   - Commiteá con un mensaje corto tipo `feat(dashboard): <slug> — <descripción de una línea>`.
-   - Pusheá a `main` con `git push`.
-   - Si el push falla, mostrale el error al usuario y paralo ahí — no intentes fix con `--force`.
-
-5. **Decile al usuario**: "Listo. Levantá el server con `bun run dev` y abrí http://localhost:3000 para verlo."
-   - Si el server ya está corriendo, recordale solamente que refresque.
-
-## Reglas
-
-- Hablá siempre en castellano con el usuario.
-- Antes de cada tool call que modifique algo (Write, Bash de inserción, etc.), explicá en una frase qué vas a hacer.
-- Si el dashboard necesita datos que no están en los endpoints actuales, **paralo y avisale al usuario** — no inventes endpoints ni toques el server sin pedir permiso explícito.
+1. Si es un cambio, bajalo: `bun run dashboard pull <slug>`. Si es nuevo, creá `dashboards/<slug>.html` y `dashboards/<slug>.sql`. Para copiar estructura: `bun run dashboard pull trafico-landing`.
+2. Escribí las queries (`-- @query <nombre>`, tablas de v2) y probalas con `bun run dashboard check <slug> [from=.. to=..]`. Mostrale al usuario los números clave antes de seguir.
+3. Escribí el HTML: pide los datos a `/api/q/<slug>/<query>`; nada de datos embebidos.
+4. Avisale y publicá: `bun run dashboard publish <slug> "<título>" "<descripción>" "<qué cambió>"`. Queda al instante en `https://ep-dashboard-generator-production.up.railway.app/d/<slug>`.
+   - Si dice que el dashboard cambió en el medio, alguien publicó otra versión: hacé `pull` de nuevo, aplicá los cambios encima y volvé a publicar. No lo fuerces.
+5. No hay que commitear nada: `dashboards/` está en `.gitignore`.

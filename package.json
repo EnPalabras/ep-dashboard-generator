@@ -8,8 +8,7 @@
     "start": "bun run src/server/index.ts",
     "batch": "bun run src/batch/run.ts",
     "db:init": "bun run scripts/init-db.ts",
-    "dashboard:register": "bun run scripts/register-dashboard.ts",
-    "query:check": "bun run scripts/check-query.ts"
+    "dashboard": "bun run scripts/dashboard.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -23,11 +22,13 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "zod": "^4.6.5"
   }
 }

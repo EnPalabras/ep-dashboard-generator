@@ -10,6 +10,12 @@ export interface User {
   picture: string;
 }
 
+declare module "express-session" {
+  interface SessionData {
+    returnTo?: string;
+  }
+}
+
 declare global {
   namespace Express {
     interface User {
@@ -23,7 +29,7 @@ declare global {
 
 const ALLOWED_DOMAIN = "enpalabras.com.ar";
 
-const DEV_USER: User = {
+export const DEV_USER: User = {
   id: "dev",
   email: "dev@enpalabras.com.ar",
   name: "Dev User",
@@ -89,8 +95,12 @@ export function setupAuth(app: Express) {
 
   app.get(
     "/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/auth/denied" }),
-    (_req, res) => res.redirect("/")
+    passport.authenticate("google", { failureRedirect: "/auth/denied", keepSessionInfo: true }),
+    (req, res) => {
+      const to = req.session.returnTo;
+      delete req.session.returnTo;
+      res.redirect(to?.startsWith("/") ? to : "/");
+    }
   );
 
   app.get("/auth/denied", (_req, res) => {
@@ -118,5 +128,6 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return next();
   }
   if (req.isAuthenticated()) return next();
+  if (req.method === "GET" && !req.path.startsWith("/api")) req.session.returnTo = req.originalUrl;
   res.redirect("/auth/google");
 }
