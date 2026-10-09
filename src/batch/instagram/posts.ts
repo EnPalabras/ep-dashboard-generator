@@ -1,4 +1,4 @@
-import pool from "../../server/db/pool.ts";
+import pool from "../legacy-mirror.ts";
 
 // IG a nivel post (media insights). Trae reels/carruseles/imágenes con sus métricas propias.
 // Env: META_INSTAGRAM_ACCOUNT_ID + META_ACCESS_TOKEN (permisos instagram_*). Tabla nuestra.

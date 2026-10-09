@@ -92,8 +92,12 @@ Segunda fuente de datos, además de Meta. Mismo patrón: batch en `src/batch/ga4
 ## Base de datos: la de v2 (proyecto `EP Core` en Railway)
 
 Una sola base, la de `en-palabras-core`: `public` (ventas, pagos, envíos, stock; la escribe el core) y
-`analytics` (lo de este repo). **El legacy (`server_en_palabras`) ya no se lee ni se escribe desde acá**
-(desde el 2026-10-08). Tres roles, uno por uso:
+`analytics` (lo de este repo). **El legacy (`server_en_palabras`) ya no se lee desde acá** (desde el
+2026-10-08). **Se escribe por un espejo temporal** (desde el 2026-10-09): `src/batch/legacy-mirror.ts` repite en
+el legacy las escrituras de Meta, GA4, GA4 reports, Instagram, TikTok y Google Ads si está `LEGACY_DATABASE_URL`
+(en el workflow, `secrets.DATABASE_URL`). Un fallo ahí se loguea y no corta el batch. **Para apagarlo, borrar la
+línea `LEGACY_DATABASE_URL` de `fetch-data.yml`.** GSC, ML Ads y `combined_report_by_day` no van al legacy.
+Tres roles, uno por uso:
 
 | Rol | Quién | Puede |
 |---|---|---|
@@ -102,10 +106,10 @@ Una sola base, la de `en-palabras-core`: `public` (ventas, pagos, envíos, stock
 | `ep_readonly` | `/api/q` y el conector (`DATABASE_URL_READONLY`) | `SELECT` en `public` y `analytics` |
 
 > ⚠️ **En GitHub el secret que vale es `DATABASE_URL_SECONDARY`** (v2, `ep_analytics`): el workflow lo pasa como
-> `DATABASE_URL`. El secret `DATABASE_URL` apunta al **legacy** y ya no se usa. Ese mapeo es lo que cortó la
+> `DATABASE_URL`. El secret `DATABASE_URL` apunta al **legacy** y sólo lo usa el espejo (`LEGACY_DATABASE_URL`). Ese mapeo es lo que cortó la
 > escritura del batch en el legacy el 2026-10-08: si alguien vuelve a poner `secrets.DATABASE_URL`, el batch
-> escribe otra vez en el legacy y deja de alimentar v2. Las tablas de `analytics` del legacy (y lo que las lea
-> en Metabase) quedaron congeladas en esa fecha.
+> escribe otra vez en el legacy y deja de alimentar v2. Las tablas de `analytics` del legacy quedaron congeladas
+> del 2026-10-08 al 2026-10-09, hasta que se prendió el espejo.
 
 Los roles se crean con `docs/conector/rol-*.sql`. Las tablas se crean con `bun run db:init` (todos los
 `schema.sql`, idempotente).

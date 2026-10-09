@@ -10,6 +10,7 @@ import { fetchAndStoreMercadoLibreAds } from "./mercadolibre/fetch.ts";
 import { fetchAndStoreSearchConsole } from "./gsc/fetch.ts";
 import { buildCombinedReport } from "./combined/build.ts";
 import pool from "../server/db/pool.ts";
+import { endLegacy } from "./legacy-mirror.ts";
 
 // Uso:
 //   bun run batch                -> últimos 3 días
@@ -57,6 +58,7 @@ async function main() {
 
   console.log("[batch] done");
   await pool.end();
+  await endLegacy();
 }
 
 main();

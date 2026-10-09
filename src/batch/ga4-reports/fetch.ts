@@ -1,4 +1,4 @@
-import pool from "../../server/db/pool.ts";
+import pool from "../legacy-mirror.ts";
 import { ga4CredsFromEnv, runReport, runFunnelReport, ga4DateToISO, type GA4Credentials } from "../ga4/client.ts";
 
 // Portado de server_en_palabras (crons/analytics + lib/google-analytics/ga4-sync).

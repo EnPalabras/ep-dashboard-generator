@@ -1,4 +1,4 @@
-import pool from "../../server/db/pool.ts";
+import pool from "../legacy-mirror.ts";
 import { tiktokCredsFromEnv, getBasicAdReport } from "./client.ts";
 
 const DIMENSIONS = ["ad_id", "stat_time_day"];

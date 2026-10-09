@@ -1,4 +1,4 @@
-import pool from "../../server/db/pool.ts";
+import pool from "../legacy-mirror.ts";
 import {
   fetchCampaignInsights,
   fetchPlatformInsights,

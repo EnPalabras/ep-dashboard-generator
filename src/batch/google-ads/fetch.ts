@@ -1,4 +1,4 @@
-import pool from "../../server/db/pool.ts";
+import pool from "../legacy-mirror.ts";
 import { ga4CredsFromEnv, runReport, ga4DateToISO, type GA4Credentials } from "../ga4/client.ts";
 import type { FetchOptions } from "../ga4/fetch.ts";
 

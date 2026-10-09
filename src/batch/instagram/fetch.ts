@@ -1,4 +1,4 @@
-import pool from "../../server/db/pool.ts";
+import pool from "../legacy-mirror.ts";
 
 // Portado de server_en_palabras (lib/meta/instagram-by-day + crons/meta).
 // Alimenta la tabla EXISTENTE analytics.instagram_by_day (Metabase la consume).
