@@ -1,4 +1,5 @@
-import pool from "../legacy-mirror.ts";
+import pool, { legacy } from "../legacy-mirror.ts";
+import v2 from "../../server/db/pool.ts";
 import { ga4CredsFromEnv, runReport, runFunnelReport, ga4DateToISO, type GA4Credentials } from "../ga4/client.ts";
 
 // Portado de server_en_palabras (crons/analytics + lib/google-analytics/ga4-sync).
@@ -149,8 +150,7 @@ async function storeCRByProduct(creds: GA4Credentials) {
   const ev = await runReport(creds, { dimensions: ["itemId", "eventName", "date"], metrics: ["activeUsers"], startDate, endDate, dimensionFilter: filter });
   const tot = await runReport(creds, { dimensions: ["itemId", "date"], metrics: ["activeUsers"], startDate, endDate, dimensionFilter: filter });
 
-  type Row = { view_item: number; add_to_cart: number; purchase: number; active_users: number };
-  const map = new Map<string, Row>();
+  const map = new Map<string, CRRow>();
   const get = (pid: string, date: string) => {
     const k = `${pid}_${date}`;
     if (!map.has(k)) map.set(k, { view_item: 0, add_to_cart: 0, purchase: 0, active_users: 0 });
@@ -173,13 +173,31 @@ async function storeCRByProduct(creds: GA4Credentials) {
   if (map.size === 0) return;
 
   const entries = [...map.entries()];
+  await upsertCRByProduct(v2, entries);
+  if (legacy) {
+    // En el legacy la tabla tiene FK a public.productsparsed: sólo entran las variantes que están ahí.
+    try {
+      const parsed = await legacy.query(`SELECT variant FROM public.productsparsed`);
+      const inLegacy = new Set<string>(parsed.rows.map((r: { variant: string }) => r.variant));
+      const rows = entries.filter(([k]) => inLegacy.has(k.split("_")[0] ?? ""));
+      if (rows.length > 0) await upsertCRByProduct(legacy, rows);
+    } catch (err: any) {
+      console.error("[legacy] users_cr_by_product fallo:", err.message);
+    }
+  }
+  console.log(`[ga4-reports] users_cr_by_product ${startDate}..${endDate}: ${entries.length} filas`);
+}
+
+type CRRow = { view_item: number; add_to_cart: number; purchase: number; active_users: number };
+
+async function upsertCRByProduct(db: { query: (text: string, values: unknown[]) => Promise<unknown> }, entries: [string, CRRow][]) {
   const ph = entries.map((_, j) => `($${j * 7 + 1}, $${j * 7 + 2}::date, $${j * 7 + 3}, $${j * 7 + 4}, $${j * 7 + 5}, $${j * 7 + 6}, $${j * 7 + 7})`).join(", ");
   const vals = entries.flatMap(([k, v]) => {
     const [product_id, date] = k.split("_");
     const cr = v.active_users > 0 ? v.purchase / v.active_users : 0;
     return [product_id, date, v.view_item, v.add_to_cart, v.purchase, v.active_users, cr];
   });
-  await pool.query(
+  await db.query(
     `INSERT INTO analytics.users_cr_by_product (product_id, date, view_item, add_to_cart, purchase, active_users, cr)
      VALUES ${ph}
      ON CONFLICT (product_id, date) DO UPDATE SET
@@ -187,5 +205,4 @@ async function storeCRByProduct(creds: GA4Credentials) {
        purchase = EXCLUDED.purchase, active_users = EXCLUDED.active_users, cr = EXCLUDED.cr`,
     vals
   );
-  console.log(`[ga4-reports] users_cr_by_product ${startDate}..${endDate}: ${entries.length} filas`);
 }

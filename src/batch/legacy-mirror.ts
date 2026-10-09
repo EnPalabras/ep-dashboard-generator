@@ -1,7 +1,7 @@
 import pg from "pg";
 import pool from "../server/db/pool.ts";
 
-const legacy = process.env.LEGACY_DATABASE_URL
+export const legacy = process.env.LEGACY_DATABASE_URL
   ? new pg.Pool({
       connectionString: process.env.LEGACY_DATABASE_URL,
       ssl: process.env.PG_SSL === "true" ? { rejectUnauthorized: false } : false,
