@@ -9,6 +9,7 @@ import { fetchAndStoreGoogleAds } from "./google-ads/fetch.ts";
 import { fetchAndStoreMercadoLibreAds } from "./mercadolibre/fetch.ts";
 import { fetchAndStoreSearchConsole } from "./gsc/fetch.ts";
 import { buildCombinedReport } from "./combined/build.ts";
+import { fetchAndStoreFxRates } from "./fx/fetch.ts";
 import pool from "../server/db/pool.ts";
 import { endLegacy } from "./legacy-mirror.ts";
 
@@ -47,6 +48,7 @@ async function main() {
   await step("google ads", () => fetchAndStoreGoogleAds(opts));
   await step("mercado libre ads", () => fetchAndStoreMercadoLibreAds(opts));
   await step("search console", () => fetchAndStoreSearchConsole(opts));
+  await step("tipo de cambio", () => fetchAndStoreFxRates());
 
   // Ingest portado de server_en_palabras → tablas existentes de analytics (necesita write grant).
   await step("ga4 reports (sessions/events/funnel/product)", () => fetchAndStoreGA4Reports());

@@ -9,6 +9,7 @@ import {
   extractMetrics,
   type MetaAccountInsight,
 } from "./client.ts";
+import { storeAdVideo, storeAdDemographics, storeAdRegions } from "./breakdowns.ts";
 
 function daysAgo(n: number): string {
   const d = new Date();
@@ -62,6 +63,9 @@ export async function fetchAndStoreMetaData(opts: FetchOptions = {}) {
       ["ad entities", () => storeAdEntities(adAccountId, accessToken)],
       ["account daily", () => storeAccountDaily(adAccountId, accessToken, dateFrom, dateTo)],
       ["account totals", () => storeAccountTotals(adAccountId, accessToken)],
+      ["ad video", () => storeAdVideo(adAccountId, accessToken, dateFrom, dateTo)],
+      ["ad demographics", () => storeAdDemographics(adAccountId, accessToken, dateFrom, dateTo)],
+      ["ad regions", () => storeAdRegions(adAccountId, accessToken, dateFrom, dateTo)],
     ];
     for (const [name, run] of steps) {
       try {

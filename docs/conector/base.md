@@ -49,6 +49,10 @@ Fechas en `timestamptz` (UTC): para agrupar por día de Argentina usá
   `engaged_sessions`, `transactions` (compras), `purchase_revenue`. Es la tabla para conversión por página o canal.
 - `ga4_traffic_daily`: GA4 por día × canal × source × medium, con usuarios y duración. Su `conversions`
   suma **todos** los key events, no sólo compras: para ventas usá `transactions` de `ga4_landing_daily`.
+- `ga4_site_daily`: totales del sitio por día sin abrir por fuente (`total_users` sin duplicar, `sessions`,
+  `page_views`, `avg_session_duration`, `bounce_rate`). Es lo que muestra Estadísticas Nube. Para un rango
+  sumá sesiones y páginas, y ponderá duración y rebote por sesiones; los usuarios de varios días no se suman.
+- `ga4_device_region_daily`: lo mismo por día × `device_category` × `country` × `region` (provincia).
 - `ga4_events_daily`, `events_per_month_page`, `checkout_dropoff_funnel`, `users_cr_by_product`, `sessions_per_month`.
 - `meta_account_daily`: Meta a nivel cuenta por día (`amount_spent`, `purchase`, `purchase_value`,
   `link_click`, reach). Para totales de Meta usá esta. Hay dos cuentas (`account_id`): la vieja hasta
@@ -56,12 +60,18 @@ Fechas en `timestamptz` (UTC): para agrupar por día de Argentina usá
 - `meta_campaign_insights`: por anuncio y día (`campaign_name`, `adset_name`, `ad_name`, `spend`,
   `purchase`, …). `reach` y `frequency` no se suman entre filas.
 - `meta_platform_insights` (por plataforma/ubicación), `meta_ad_entities` (estado actual de cada anuncio).
+- `meta_ad_video_daily`: video por anuncio y día (`video_3s_views`, `video_p25`…`video_p100`, `thruplays`,
+  `avg_watch_seconds`). Sólo anuncios con video.
+- `meta_ad_demographics` (por `age` × `gender`) y `meta_ad_regions` (por `region`): gasto, clics y compras
+  por anuncio y día. `reach` no se suma entre filas.
 - `google_ads_daily`: costo, clics e impresiones por campaña y día. **Sale de GA4** (cuenta vinculada):
   `key_events` no son las conversiones de Google Ads. Campañas: `EP_Pmax_*`, `EP_Search_*`, el resto Shopping/Video.
 - `tiktok_ads_daily` (desde ago-2025), `mercadolibre_ads_daily` (Product Ads de ML).
 - `combined_report_by_day`: inversión diaria de todos los canales juntos.
 - `gsc_site_daily`, `gsc_page_daily`, `gsc_query_daily`: Google Search Console.
 - `instagram_by_day`, `instagram_posts`: orgánico de Instagram.
+- `fx_rates_daily`: dólar por día y `casa` (`oficial`, `mayorista`, `blue`, `mep`, `ccl`, `tarjeta`, `cripto`),
+  `compra` y `venta`. `fx_rates_calendar` repite la última cotización en los días sin dato.
 - `logistics_spending`, `cmv_products`, `marketing_spend_manual`, `influencer_costs`: planillas manuales viejas.
 
 ## Etiquetas de GA4

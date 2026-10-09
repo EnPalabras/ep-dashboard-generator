@@ -394,3 +394,35 @@ export async function fetchAdEntities(
 
   return fetchAllPages<MetaAdEntity>(url);
 }
+
+export type MetaAdRow = Record<string, unknown> & {
+  campaign_id?: string;
+  adset_id?: string;
+  ad_id?: string;
+  date_start: string;
+  actions?: MetaAction[];
+  action_values?: MetaAction[];
+};
+
+export async function fetchAdInsightsBy(
+  adAccountId: string,
+  accessToken: string,
+  dateFrom: string,
+  dateTo: string,
+  fields: string[],
+  breakdowns?: string,
+): Promise<MetaAdRow[]> {
+  return inWindows(dateFrom, dateTo, (since, until) => {
+    const params: Record<string, string> = {
+      fields: ["campaign_id", "adset_id", "ad_id", ...fields].join(","),
+      time_range: JSON.stringify({ since, until }),
+      time_increment: "1",
+      level: "ad",
+      filtering: ALL_AD_STATUSES,
+      limit: "500",
+      access_token: accessToken,
+    };
+    if (breakdowns) params.breakdowns = breakdowns;
+    return fetchAllPages<MetaAdRow>(`${BASE_URL}/act_${adAccountId}/insights?${new URLSearchParams(params)}`);
+  });
+}

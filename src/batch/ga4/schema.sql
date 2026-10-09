@@ -57,3 +57,35 @@ CREATE TABLE IF NOT EXISTS ga4_landing_daily (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ga4_landing_date ON ga4_landing_daily (date);
+
+-- Totales del sitio por día, sin abrir por fuente: total_users es de-duplicado en el día (sumar
+-- ga4_traffic_daily por fuente lo infla ~7%). Es lo que muestra Estadísticas Nube. Sólo en v2.
+CREATE TABLE IF NOT EXISTS ga4_site_daily (
+  date                 DATE        PRIMARY KEY,
+  total_users          INTEGER     NOT NULL DEFAULT 0,
+  new_users            INTEGER     NOT NULL DEFAULT 0,
+  sessions             INTEGER     NOT NULL DEFAULT 0,
+  engaged_sessions     INTEGER     NOT NULL DEFAULT 0,
+  page_views           INTEGER     NOT NULL DEFAULT 0,
+  avg_session_duration NUMERIC     NOT NULL DEFAULT 0,
+  bounce_rate          NUMERIC     NOT NULL DEFAULT 0,
+  pages_per_session    NUMERIC     NOT NULL DEFAULT 0,
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Por día × dispositivo × país × región (provincia). total_users no se suma entre filas. Sólo en v2.
+CREATE TABLE IF NOT EXISTS ga4_device_region_daily (
+  date                 DATE        NOT NULL,
+  device_category      TEXT        NOT NULL,
+  country              TEXT        NOT NULL,
+  region               TEXT        NOT NULL,
+  total_users          INTEGER     NOT NULL DEFAULT 0,
+  sessions             INTEGER     NOT NULL DEFAULT 0,
+  engaged_sessions     INTEGER     NOT NULL DEFAULT 0,
+  page_views           INTEGER     NOT NULL DEFAULT 0,
+  avg_session_duration NUMERIC     NOT NULL DEFAULT 0,
+  bounce_rate          NUMERIC     NOT NULL DEFAULT 0,
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (date, device_category, country, region)
+);
+CREATE INDEX IF NOT EXISTS idx_ga4_device_region_date ON ga4_device_region_daily (date);

@@ -163,6 +163,75 @@ BEGIN
   END LOOP;
 END $$;
 
+-- Video por anuncio × día (sólo anuncios con video). Sólo en v2. video_3s_views = action "video_view"
+-- (reproducciones de 3 s); video_plays = video_play_actions (inicios); p25..p100 y thruplays son conteos.
+CREATE TABLE IF NOT EXISTS meta_ad_video_daily (
+  ad_id             TEXT        NOT NULL,
+  date              DATE        NOT NULL,
+  campaign_id       TEXT,
+  adset_id          TEXT,
+  impressions       BIGINT      NOT NULL DEFAULT 0,
+  video_plays       BIGINT      NOT NULL DEFAULT 0,
+  video_3s_views    BIGINT      NOT NULL DEFAULT 0,
+  video_p25         BIGINT      NOT NULL DEFAULT 0,
+  video_p50         BIGINT      NOT NULL DEFAULT 0,
+  video_p75         BIGINT      NOT NULL DEFAULT 0,
+  video_p95         BIGINT      NOT NULL DEFAULT 0,
+  video_p100        BIGINT      NOT NULL DEFAULT 0,
+  thruplays         BIGINT      NOT NULL DEFAULT 0,
+  video_30s         BIGINT      NOT NULL DEFAULT 0,
+  avg_watch_seconds NUMERIC     NOT NULL DEFAULT 0,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (ad_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_meta_ad_video_date ON meta_ad_video_daily (date);
+
+-- Desgloses por anuncio × día. reach no se suma entre filas (Meta lo deduplica). Sólo en v2.
+CREATE TABLE IF NOT EXISTS meta_ad_demographics (
+  ad_id               TEXT        NOT NULL,
+  date                DATE        NOT NULL,
+  age                 TEXT        NOT NULL,
+  gender              TEXT        NOT NULL,
+  campaign_id         TEXT,
+  adset_id            TEXT,
+  spend               NUMERIC     NOT NULL DEFAULT 0,
+  impressions         BIGINT      NOT NULL DEFAULT 0,
+  clicks              BIGINT      NOT NULL DEFAULT 0,
+  reach               BIGINT      NOT NULL DEFAULT 0,
+  link_click          BIGINT      NOT NULL DEFAULT 0,
+  add_to_cart         BIGINT      NOT NULL DEFAULT 0,
+  initiate_checkout   BIGINT      NOT NULL DEFAULT 0,
+  purchase            BIGINT      NOT NULL DEFAULT 0,
+  purchase_value      NUMERIC     NOT NULL DEFAULT 0,
+  omni_purchase       BIGINT      NOT NULL DEFAULT 0,
+  omni_purchase_value NUMERIC     NOT NULL DEFAULT 0,
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (ad_id, date, age, gender)
+);
+CREATE INDEX IF NOT EXISTS idx_meta_ad_demographics_date ON meta_ad_demographics (date);
+
+CREATE TABLE IF NOT EXISTS meta_ad_regions (
+  ad_id               TEXT        NOT NULL,
+  date                DATE        NOT NULL,
+  region              TEXT        NOT NULL,
+  campaign_id         TEXT,
+  adset_id            TEXT,
+  spend               NUMERIC     NOT NULL DEFAULT 0,
+  impressions         BIGINT      NOT NULL DEFAULT 0,
+  clicks              BIGINT      NOT NULL DEFAULT 0,
+  reach               BIGINT      NOT NULL DEFAULT 0,
+  link_click          BIGINT      NOT NULL DEFAULT 0,
+  add_to_cart         BIGINT      NOT NULL DEFAULT 0,
+  initiate_checkout   BIGINT      NOT NULL DEFAULT 0,
+  purchase            BIGINT      NOT NULL DEFAULT 0,
+  purchase_value      NUMERIC     NOT NULL DEFAULT 0,
+  omni_purchase       BIGINT      NOT NULL DEFAULT 0,
+  omni_purchase_value NUMERIC     NOT NULL DEFAULT 0,
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (ad_id, date, region)
+);
+CREATE INDEX IF NOT EXISTS idx_meta_ad_regions_date ON meta_ad_regions (date);
+
 -- Dashboard registry
 CREATE TABLE IF NOT EXISTS dashboards (
   slug TEXT PRIMARY KEY,

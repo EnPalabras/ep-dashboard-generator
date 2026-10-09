@@ -1,5 +1,6 @@
 import pool from "../legacy-mirror.ts";
 import { ga4CredsFromEnv, runReport, ga4DateToISO, type GA4Credentials } from "./client.ts";
+import { storeSiteDaily, storeDeviceRegionDaily } from "./site.ts";
 
 function daysAgo(n: number): string {
   const d = new Date();
@@ -39,6 +40,13 @@ export async function fetchAndStoreGA4Data(opts: FetchOptions = {}) {
     await storeLanding(creds, from, to);
   } catch (err: any) {
     console.error("[ga4] landing failed:", err.message);
+  }
+
+  try {
+    await storeSiteDaily(creds, from, to);
+    await storeDeviceRegionDaily(creds, from, to);
+  } catch (err: any) {
+    console.error("[ga4] site/device failed:", err.message);
   }
 }
 

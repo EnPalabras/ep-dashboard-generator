@@ -11,6 +11,7 @@ const SCHEMAS = [
   "src/batch/tiktok/schema.sql",
   "src/batch/instagram/schema.sql",
   "src/batch/mercadolibre/schema.sql",
+  "src/batch/fx/schema.sql",
   "src/server/dashboards/schema.sql",
 ];
 
